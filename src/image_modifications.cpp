@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2009 - 2023
+	Copyright (C) 2009 - 2024
 	by Iris Morelle <shadowm2006@gmail.com>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -120,11 +120,13 @@ std::unique_ptr<modification> decode_modification(const std::string& encoded_mod
 modification::imod_exception::imod_exception(const std::stringstream& message_stream)
 	: message(message_stream.str())
 {
+	this->store();
 }
 
 modification::imod_exception::imod_exception(const std::string& message)
 	: message(message)
 {
+	this->store();
 }
 
 /** Decodes the modification string
@@ -193,6 +195,11 @@ surface rotate_modification::operator()(const surface& src) const
 surface gs_modification::operator()(const surface& src) const
 {
 	return greyscale_image(src);
+}
+
+surface crop_transparency_modification::operator()(const surface& src) const
+{
+	return get_non_transparent_portion(src);
 }
 
 surface bw_modification::operator()(const surface& src) const
@@ -748,6 +755,12 @@ REGISTER_MOD_PARSER(ROTATE, args)
 REGISTER_MOD_PARSER(GS, )
 {
 	return std::make_unique<gs_modification>();
+}
+
+// crop transparent padding
+REGISTER_MOD_PARSER(CROP_TRANSPARENCY, )
+{
+	return std::make_unique<crop_transparency_modification>();
 }
 
 // Black and white

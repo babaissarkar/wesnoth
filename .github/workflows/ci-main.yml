@@ -51,8 +51,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { tool: scons, cc: gcc,   cxx: g++,     cfg: debug,   lto: false }
-          - { tool: cmake, cc: clang, cxx: clang++, cfg: release, lto: true  }
+          - { tool: scons, cc: gcc,   cxx: g++,     cfg: debug,   lto: false, sys_lua: false }
+          - { tool: cmake, cc: clang, cxx: clang++, cfg: release, lto: true,  sys_lua: true  }
     runs-on: ubuntu-latest
     container:
       image: wesnoth/wesnoth:2204-master
@@ -64,6 +64,7 @@ jobs:
         CXX: ${{ matrix.cxx }}
         CXX_STD: 17
         LTO: ${{ matrix.lto }}
+        SYS_LUA: ${{ matrix.sys_lua }}
         CLICOLOR_FORCE: 1
         SDL_VIDEODRIVER: dummy
 
@@ -83,8 +84,8 @@ jobs:
                 ldconfig
                 scons "$@" build="$CFG" ctool="$CC" cxxtool="$CXX" cxx_std="$CXX_STD" \
                   extra_flags_config="-pipe" forum_user_handler=true \
-                  nls=false enable_lto="$LTO" force_color=true jobs=2 --debug=time \
-                  glibcxx_debug=true glibcxx_assertions=true
+                  nls=false enable_lto="$LTO" system_lua="$SYS_LUA" force_color=true \
+                  jobs=2 --debug=time glibcxx_debug=true glibcxx_assertions=true
               }
               build strict=true wesnoth boost_unit_tests
 
@@ -97,7 +98,8 @@ jobs:
                 ldconfig
                 cmake "$@" -DCMAKE_BUILD_TYPE="$CFG" -DCXX_STD="$CXX_STD" \
                   -DEXTRA_FLAGS_CONFIG="-pipe" -DENABLE_MYSQL=true \
-                  -DENABLE_NLS=false -DENABLE_LTO="$LTO" -DFORCE_COLOR_OUTPUT=true -DLTO_JOBS=2 .
+                  -DENABLE_NLS=false -DENABLE_LTO="$LTO" -DFORCE_COLOR_OUTPUT=true -DLTO_JOBS=2 \
+                  -DENABLE_SYSTEM_LUA="$SYS_LUA" .
               }
               rm -R /usr/local/lib/cmake
               rm /usr/local/lib/libboost*
@@ -260,7 +262,11 @@ jobs:
         run: scons translations build=release --debug=time nls=true jobs=2
       - name: Build wesnoth and unit tests
         working-directory: projectfiles/Xcode
-        run: xcodebuild ARCHS=x86_64 -project "The Battle for Wesnoth.xcodeproj" -target "The Battle for Wesnoth" -target "unit_tests" -configuration "$CFG"
+        run: |
+          xcodebuild ARCHS=x86_64 -project "The Battle for Wesnoth.xcodeproj" -target "The Battle for Wesnoth" -target "unit_tests" -configuration "$CFG"
+          # xcodebuild or maybe clang do not appear to fail properly when input files cannot be found; double check executables were produced
+          [ -x "build/$CFG/The Battle for Wesnoth.app" ] || { printf 'Failed to build wesnoth executable!\n' >&2; exit 1; }
+          [ -x "build/$CFG/unit_tests" ] || { printf 'Failed to build unit test executable!\n' >&2; exit 1; }
       - name: Create disk image
         working-directory: projectfiles/Xcode
         run: hdiutil create -volname "Wesnoth_$CFG" -fs 'HFS+' -srcfolder "build/$CFG" -ov -format UDBZ "Wesnoth_${CFG}.dmg"

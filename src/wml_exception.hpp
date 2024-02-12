@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2007 - 2023
+	Copyright (C) 2007 - 2024
 	by Mark de Wever <koraq@xs4all.nl>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -96,13 +96,14 @@
 		, const std::string& dev_message = "");
 
 /** Helper class, don't construct this directly. */
-struct wml_exception
+struct wml_exception final
 	: public lua_jailbreak_exception
 {
 	wml_exception(const std::string& user_msg, const std::string& dev_msg)
 		: user_message(user_msg)
 		, dev_message(dev_msg)
 	{
+		this->store();
 	}
 
 	~wml_exception() noexcept {}
