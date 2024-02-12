@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2008 - 2023
+	Copyright (C) 2008 - 2024
 	by Mark de Wever <koraq@xs4all.nl>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -202,6 +202,8 @@ void text_box::update_canvas()
 		tmp.set_variable("text_y_offset", wfl::variant(text_y_offset_));
 		tmp.set_variable("text_maximum_width", wfl::variant(max_width));
 		tmp.set_variable("text_maximum_height", wfl::variant(max_height));
+		
+		tmp.set_variable("editable", wfl::variant(is_editable()));
 
 		tmp.set_variable("cursor_offset",
 						 wfl::variant(get_cursor_position(start + length).x));
@@ -425,6 +427,7 @@ builder_text_box::builder_text_box(const config& cfg)
 	, max_input_length(cfg["max_input_length"])
 	, hint_text(cfg["hint_text"].t_str())
 	, hint_image(cfg["hint_image"])
+	, editable(cfg["editable"].to_bool(true))
 {
 }
 
@@ -441,6 +444,7 @@ std::unique_ptr<widget> builder_text_box::build() const
 
 	widget->set_max_input_length(max_input_length);
 	widget->set_hint_data(hint_text, hint_image);
+	widget->set_editable(editable);
 
 	DBG_GUI_G << "Window builder: placed text box '" << id
 			  << "' with definition '" << definition << "'.";

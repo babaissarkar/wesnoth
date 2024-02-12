@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2008 - 2023
+	Copyright (C) 2008 - 2024
 	by Mark de Wever <koraq@xs4all.nl>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -351,6 +351,8 @@ public:
 
 	t_string hint_text;
 	std::string hint_image;
+	
+	bool editable;
 };
 
 } // namespace implementation
