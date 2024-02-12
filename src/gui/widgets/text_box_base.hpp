@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2008 - 2023
+	Copyright (C) 2008 - 2024
 	by Mark de Wever <koraq@xs4all.nl>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -70,6 +70,26 @@ public:
 		return text_.get_length();
 	}
 
+	std::vector<std::string> get_lines()
+	{
+		return text_.get_lines();
+	}
+
+	unsigned get_lines_count() const
+	{
+		return text_.get_lines_count();
+	}
+
+	int get_byte_offset(const unsigned column) const
+	{
+		return text_.get_byte_offset(column);
+	}
+
+	void set_highlight_area(const unsigned start_offset, const unsigned end_offset, const color_t& color)
+	{
+		text_.set_highlight_area(start_offset, end_offset, color);
+	}
+
 	/***** ***** ***** setters / getters for members ***** ****** *****/
 
 	/**
@@ -118,6 +138,17 @@ public:
 	 */
 	void set_selection(std::size_t start, int length);
 
+	void set_editable(bool editable)
+	{
+		editable_ = editable;
+		update_canvas();
+	}
+
+	bool is_editable()
+	{
+		return editable_;
+	}
+
 protected:
 	/** Get length of composition text by IME **/
 	size_t get_composition_length() const;
@@ -138,7 +169,7 @@ protected:
 	 * @param select              Select the text from the original cursor
 	 *                            position till the end of the data?
 	 */
-	void goto_end_of_data(const bool select = false)
+	virtual void goto_end_of_data(const bool select = false)
 	{
 		set_cursor(text_.get_length(), select);
 	}
@@ -157,7 +188,7 @@ protected:
 	 * @param select              Select the text from the original cursor
 	 *                            position till the beginning of the data?
 	 */
-	void goto_start_of_data(const bool select = false)
+	virtual void goto_start_of_data(const bool select = false)
 	{
 		set_cursor(0, select);
 	}
@@ -176,7 +207,7 @@ protected:
 	 * @param select              Select the text from the original cursor
 	 *                            position till the new position?
 	 */
-	void set_cursor(const std::size_t offset, const bool select);
+	virtual void set_cursor(const std::size_t offset, const bool select);
 
 	/**
 	 * Inserts a character at the cursor.
@@ -217,6 +248,17 @@ protected:
 	point get_column_line(const point& position) const
 	{
 		return text_.get_column_line(position);
+	}
+
+	font::family_class get_font_family()
+	{
+		return font_family_;
+	}
+
+	void set_font_family(font::family_class fclass)
+	{
+		font_family_ = fclass;
+		text_.set_family_class(font_family_);
 	}
 
 	void set_font_size(const unsigned font_size)
@@ -303,6 +345,9 @@ private:
 	/** The text entered in the widget. */
 	font::pango_text text_;
 
+	/** font family */
+	font::family_class font_family_;
+
 	/** Cached version of the text without any pending IME modifications. */
 	std::string text_cached_;
 
@@ -317,6 +362,9 @@ private:
 	 * * selection_len_ == 0 means no selection.
 	 */
 	int selection_length_;
+
+	/** If this text_box_base is editable */
+	bool editable_;
 
 	// Values to support input method editors
 	bool ime_composing_;
@@ -377,7 +425,7 @@ private:
 	 * Alt                        Ignored.
 	 */
 	virtual void handle_key_clear_line(SDL_Keymod modifier, bool& handled) = 0;
-
+protected:
 	/**
 	 * Left arrow key pressed.
 	 *
@@ -400,6 +448,7 @@ private:
 	 */
 	virtual void handle_key_right_arrow(SDL_Keymod modifier, bool& handled);
 
+private:
 	/**
 	 * Home key pressed.
 	 *
@@ -480,6 +529,18 @@ private:
 	 * Alt                        Implementation defined.
 	 */
 	virtual void handle_key_tab(SDL_Keymod /*modifier*/, bool& /*handled*/)
+	{
+	}
+
+	/**
+	 * Enter key.
+	 *
+	 * Unmodified                 Handled by Window.
+	 * Control                    Implementation defined.
+	 * Shift                      Implementation defined.
+	 * Alt                        Implementation defined.
+	 */
+	virtual void handle_key_enter(SDL_Keymod /*modifier*/, bool& /*handled*/)
 	{
 	}
 
