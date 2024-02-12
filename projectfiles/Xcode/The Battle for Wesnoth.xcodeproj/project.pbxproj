@@ -664,6 +664,7 @@
 		8C704B6F99C824A4073EEBEE /* prompt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 67044415B63F5888193BD7A6 /* prompt.cpp */; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		900000000000000000000009 /* match_history.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4685A5F925B4501E006FD3A1 /* match_history.cpp */; };
+		9002415BA030D7C959EDA2E8 /* combobox.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0614CC785C0857883E43FF1 /* combobox.cpp */; };
 		903F959C1ED5489500F1BDD3 /* credentials.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 903F959B1ED5489500F1BDD3 /* credentials.cpp */; };
 		903F959F1ED5496700F1BDD3 /* hash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B52EE8AD121359A600CFBDAB /* hash.cpp */; };
 		90606A2B1D5599BA00719B40 /* libpcre.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 90606A2A1D5599BA00719B40 /* libpcre.1.dylib */; };
@@ -1107,6 +1108,7 @@
 		91FAC70A1C7FBC3400DAB2C3 /* lua_formula_bridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 91FAC7091C7FBC2C00DAB2C3 /* lua_formula_bridge.cpp */; };
 		91FBBAD81CB6BC3F00470BFE /* filesystem_sdl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 91FBBAD71CB6BC3F00470BFE /* filesystem_sdl.cpp */; };
 		91FBBADB1CB6D1B700470BFE /* markov_generator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 91FBBAD91CB6D1B700470BFE /* markov_generator.cpp */; };
+		959D4992B2C0954057827AAC /* combobox.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B0614CC785C0857883E43FF1 /* combobox.cpp */; };
 		95EB8A52287A02B900B09F95 /* draw_manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 95EB8A50287A02B800B09F95 /* draw_manager.cpp */; };
 		95EB8A55287A02EC00B09F95 /* top_level_drawable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 95EB8A54287A02EC00B09F95 /* top_level_drawable.cpp */; };
 		95EB8A58287B138700B09F95 /* draw_manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 95EB8A50287A02B800B09F95 /* draw_manager.cpp */; };
@@ -2380,6 +2382,7 @@
 		95EB8A51287A02B800B09F95 /* draw_manager.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = draw_manager.hpp; sourceTree = "<group>"; };
 		95EB8A53287A02EC00B09F95 /* top_level_drawable.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = top_level_drawable.hpp; path = gui/core/top_level_drawable.hpp; sourceTree = "<group>"; };
 		95EB8A54287A02EC00B09F95 /* top_level_drawable.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = top_level_drawable.cpp; path = gui/core/top_level_drawable.cpp; sourceTree = "<group>"; };
+		B0614CC785C0857883E43FF1 /* combobox.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = combobox.cpp; path = combobox.cpp; sourceTree = "<group>"; };
 		B2CC45FEA71445AE817CAA6B /* edit_pbl.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = edit_pbl.hpp; sourceTree = "<group>"; };
 		B508D191100146E300B12852 /* engine_fai.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = engine_fai.cpp; sourceTree = "<group>"; };
 		B508D192100146E300B12852 /* engine_fai.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = engine_fai.hpp; sourceTree = "<group>"; };
@@ -4062,6 +4065,7 @@
 				46F92D342174F6A300602C1C /* window_private.hpp */,
 				46F92D2E2174F6A300602C1C /* window.cpp */,
 				46F92D472174F6A300602C1C /* window.hpp */,
+				B0614CC785C0857883E43FF1 /* combobox.cpp */,
 			);
 			path = widgets;
 			sourceTree = "<group>";
@@ -5863,6 +5867,7 @@
 				0554467DB5FE99D85ABCDCA0 /* edit_pbl_translation.cpp in Sources */,
 				8C704B6F99C824A4073EEBEE /* prompt.cpp in Sources */,
 				DF974010BB46B844E83F7DDA /* tod_new_schedule.cpp in Sources */,
+				959D4992B2C0954057827AAC /* combobox.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -6540,6 +6545,7 @@
 				EBB44A70837B84A928CB6424 /* edit_pbl_translation.cpp in Sources */,
 				7BFC4DF5BFF8CF75855BA662 /* prompt.cpp in Sources */,
 				C93048A9AE576B6AD016DFA4 /* tod_new_schedule.cpp in Sources */,
+				9002415BA030D7C959EDA2E8 /* combobox.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -6643,15 +6649,15 @@
 					"$(PROJECT_DIR)/Headers/SDL2",
 					"$(PROJECT_DIR)/Headers/harfbuzz",
 				);
+				LD_CLASSIC_1000 = "";
+				LD_CLASSIC_1100 = "";
+				LD_CLASSIC_1200 = "";
+				LD_CLASSIC_1300 = "";
+				LD_CLASSIC_1400 = "";
+				LD_CLASSIC_1500 = "-ld_classic";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/lib";
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
-				"LD_CLASSIC_1000" = "";
-				"LD_CLASSIC_1100" = "";
-				"LD_CLASSIC_1200" = "";
-				"LD_CLASSIC_1300" = "";
-				"LD_CLASSIC_1400" = "";
-				"LD_CLASSIC_1500" = "-ld_classic";
 				OTHER_LDFLAGS = (
 					"-lz",
 					"-lbz2",
@@ -6717,16 +6723,16 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = /Applications;
+				LD_CLASSIC_1000 = "";
+				LD_CLASSIC_1100 = "";
+				LD_CLASSIC_1200 = "";
+				LD_CLASSIC_1300 = "";
+				LD_CLASSIC_1400 = "";
+				LD_CLASSIC_1500 = "-ld_classic";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				LLVM_LTO = YES_THIN;
 				OTHER_CFLAGS = "-Wall";
 				OTHER_CPLUSPLUSFLAGS = "-Wall";
-				"LD_CLASSIC_1000" = "";
-				"LD_CLASSIC_1100" = "";
-				"LD_CLASSIC_1200" = "";
-				"LD_CLASSIC_1300" = "";
-				"LD_CLASSIC_1400" = "";
-				"LD_CLASSIC_1500" = "-ld_classic";
 				OTHER_LDFLAGS = (
 					"-lz",
 					"-lbz2",
@@ -7112,15 +7118,15 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = /Applications;
+				LD_CLASSIC_1000 = "";
+				LD_CLASSIC_1100 = "";
+				LD_CLASSIC_1200 = "";
+				LD_CLASSIC_1300 = "";
+				LD_CLASSIC_1400 = "";
+				LD_CLASSIC_1500 = "-ld_classic";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				OTHER_CFLAGS = "-Wall";
 				OTHER_CPLUSPLUSFLAGS = "-Wall";
-				"LD_CLASSIC_1000" = "";
-				"LD_CLASSIC_1100" = "";
-				"LD_CLASSIC_1200" = "";
-				"LD_CLASSIC_1300" = "";
-				"LD_CLASSIC_1400" = "";
-				"LD_CLASSIC_1500" = "-ld_classic";
 				OTHER_LDFLAGS = (
 					"-lz",
 					"-lbz2",
@@ -7178,16 +7184,16 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = /Applications;
+				LD_CLASSIC_1000 = "";
+				LD_CLASSIC_1100 = "";
+				LD_CLASSIC_1200 = "";
+				LD_CLASSIC_1300 = "";
+				LD_CLASSIC_1400 = "";
+				LD_CLASSIC_1500 = "-ld_classic";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				LLVM_LTO = YES_THIN;
 				OTHER_CFLAGS = "-Wall";
 				OTHER_CPLUSPLUSFLAGS = "-Wall";
-				"LD_CLASSIC_1000" = "";
-				"LD_CLASSIC_1100" = "";
-				"LD_CLASSIC_1200" = "";
-				"LD_CLASSIC_1300" = "";
-				"LD_CLASSIC_1400" = "";
-				"LD_CLASSIC_1500" = "-ld_classic";
 				OTHER_LDFLAGS = (
 					"-lz",
 					"-lbz2",
@@ -7263,17 +7269,17 @@
 					"$(PROJECT_DIR)/Headers/SDL2",
 					"$(PROJECT_DIR)/Headers/harfbuzz",
 				);
+				LD_CLASSIC_1000 = "";
+				LD_CLASSIC_1100 = "";
+				LD_CLASSIC_1200 = "";
+				LD_CLASSIC_1300 = "";
+				LD_CLASSIC_1400 = "";
+				LD_CLASSIC_1500 = "-ld_classic";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/lib";
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-Wall";
-				"LD_CLASSIC_1000" = "";
-				"LD_CLASSIC_1100" = "";
-				"LD_CLASSIC_1200" = "";
-				"LD_CLASSIC_1300" = "";
-				"LD_CLASSIC_1400" = "";
-				"LD_CLASSIC_1500" = "-ld_classic";
 				OTHER_LDFLAGS = (
 					"-lz",
 					"-lbz2",
@@ -7318,15 +7324,15 @@
 					"$(PROJECT_DIR)/Headers/SDL2",
 					"$(PROJECT_DIR)/Headers/harfbuzz",
 				);
+				LD_CLASSIC_1000 = "";
+				LD_CLASSIC_1100 = "";
+				LD_CLASSIC_1200 = "";
+				LD_CLASSIC_1300 = "";
+				LD_CLASSIC_1400 = "";
+				LD_CLASSIC_1500 = "-ld_classic";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/lib";
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
-				"LD_CLASSIC_1000" = "";
-				"LD_CLASSIC_1100" = "";
-				"LD_CLASSIC_1200" = "";
-				"LD_CLASSIC_1300" = "";
-				"LD_CLASSIC_1400" = "";
-				"LD_CLASSIC_1500" = "-ld_classic";
 				OTHER_LDFLAGS = (
 					"-lz",
 					"-lbz2",
