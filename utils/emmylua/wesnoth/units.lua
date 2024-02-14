@@ -57,53 +57,53 @@
 ---Defines an individual unit
 ---@class unit : wesnoth.units, location
 ---@field valid "'map'"|"'recall'"|"'private'"|nil
----@field loc? location
----@field id? string
+---@field loc location
+---@field id string
 ---@field side integer
 ---@field type string
----@field variation? string
----@field gender? "'male'"|"'female'"
----@field race? string
----@field portrait? string
----@field image_mods? string
----@field ellipse? string
----@field halo? string
----@field hidden? boolean
----@field name? tstring
----@field description? tstring
----@field facing? direction
----@field overlays? string[]
----@field hitpoints? integer
----@field max_hitpoints? integer
----@field experience? integer
----@field max_experience? integer
----@field moves? integer
----@field max_moves? integer
----@field attacks_left? integer
----@field max_attacks? integer
----@field level? integer
----@field recall_cost? integer
----@field cost? integer
----@field canrecruit? boolean
----@field zoc? boolean
----@field alignment? string
----@field upkeep? integer|"'full'"|"'free'"|"'loyal'"
----@field usage? string
----@field renamable? boolean
----@field undead_variation? string
----@field role? string
----@field resting? boolean
----@field recall_filter? WML
----@field extra_recruit? string[]
----@field advances_to? string[]
----@field advancements? WMLTable[]
----@field status? table<string, boolean>
----@field variables? table<string, WML>
----@field attacks? unit_weapon[]
----@field traits? string[]
----@field abilities? string[]
----@field animations? string[]
----@field __cfg? WMLTable
+---@field variation string
+---@field gender "'male'"|"'female'"
+---@field race string
+---@field portrait string
+---@field image_mods string
+---@field ellipse string
+---@field halo string
+---@field hidden boolean
+---@field name tstring
+---@field description tstring
+---@field facing direction
+---@field overlays string[]
+---@field hitpoints integer
+---@field max_hitpoints integer
+---@field experience integer
+---@field max_experience integer
+---@field moves integer
+---@field max_moves integer
+---@field attacks_left integer
+---@field max_attacks integer
+---@field level integer
+---@field recall_cost integer
+---@field cost integer
+---@field canrecruit boolean
+---@field zoc boolean
+---@field alignment string
+---@field upkeep integer|"'full'"|"'free'"|"'loyal'"
+---@field usage string
+---@field renamable boolean
+---@field undead_variation string
+---@field role string
+---@field resting boolean
+---@field recall_filter WML
+---@field extra_recruit string[]
+---@field advances_to string[]
+---@field advancements WMLTable[]
+---@field status table<string, boolean>
+---@field variables WMLVariableProxy
+---@field attacks unit_weapon[]
+---@field traits string[]
+---@field abilities string[]
+---@field animations string[]
+---@field __cfg WMLTable
 
 ---@class wesnoth.units
 wesnoth.units = {}
@@ -116,6 +116,7 @@ function wesnoth.units.advance(unit, animate, fire_events) end
 
 ---Creates a copy of the unit
 ---@param unit unit
+---@return unit
 function wesnoth.units.clone(unit) end
 
 ---Erases the unit from the map
@@ -135,16 +136,16 @@ function wesnoth.units.extract(unit) end
 function wesnoth.units.matches(unit, filter, context) end
 
 ---Place or move a unit on the map
----@param unit unit
+---@param unit unit|WML
 ---@param loc? location
 ---@param fire_event? boolean
----@overload fun(unit:unit, x:integer, y:integer)
----@overload fun(unit:unit, x:integer, y:integer, fire_event:boolean)
----@overload fun(unit:unit, fire_event:boolean)
+---@overload fun(unit:unit|WML, x:integer, y:integer)
+---@overload fun(unit:unit|WML, x:integer, y:integer, fire_event:boolean)
+---@overload fun(unit:unit|WML, fire_event:boolean)
 function wesnoth.units.to_map(unit, loc, fire_event) end
 
 ---Place a unit on a recall lists
----@param unit unit
+---@param unit unit|WML
 ---@param side? integer
 function wesnoth.units.to_recall(unit, side) end
 
@@ -231,15 +232,15 @@ function animator:clear() end
 ---@field facing? location
 ---@field value? number|number[]
 ---@field with_bars? boolean
----@field text? tstring
----@field color? color
+---@field text? tstring|number
+---@field color? color|color_list
 ---@field primary? unit_weapon
 ---@field secondary? unit_weapon
 
 ---Add a unit to the animation
 ---@param unit unit
 ---@param flag string
----@param hits boolean
+---@param hits "'hit'"|"'miss'"|"'kill'"
 ---@param params unit_animator_params
 function animator:add(unit, flag, hits, params) end
 

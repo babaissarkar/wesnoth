@@ -15,12 +15,14 @@
 
 #pragma once
 
-#include "gui/widgets/scrollbar_container.hpp"
+#include "gui/widgets/container_base.hpp"
 
 #include "gui/core/widget_definition.hpp"
 #include "gui/core/window_builder.hpp"
 
-#include "gui/widgets/multiline_text.hpp"
+#include "gui/widgets/text_box.hpp"
+
+#include <iostream>
 
 namespace gui2
 {
@@ -32,15 +34,16 @@ class spacer;
 
 namespace implementation
 {
-struct builder_scroll_text;
+struct builder_spinner;
 }
 
 /**
  * @ingroup GUIWidgetWML
  *
- * Scrollable text area
+ * Spinner widget.
  *
- * A multiline text area that shows a scrollbar if the text gets too long.
+ * A widget with a text_box and two button (named _prev and _next) that allows user to increase
+ * or decrease the numeric value inside the text_box. Non-numeric values are considered as zero.
  *
  * Key          |Type                        |Default  |Description
  * -------------|----------------------------|---------|-----------
@@ -48,49 +51,27 @@ struct builder_scroll_text;
  *
  * TODO: we need one definition for a vertical scrollbar since this is the second time we use it.
  *
- * ID (return value)|Type                        |Default  |Description
- * -----------------|----------------------------|---------|-----------
- * _content_grid    | @ref guivartype_grid "grid"|mandatory|A grid which should only contain one multiline_text widget.
- * _scrollbar_grid  | @ref guivartype_grid "grid"|mandatory|A grid for the scrollbar (Merge with listbox info.)
+ * ID (return value)|Type                            |Default  |Description
+ * -----------------|--------------------------------|---------|-----------
+ * _content_grid    | @ref guivartype_grid "grid"    |mandatory|A grid which should contain a text_box and two buttons.
  *
  * Description of necessary widgets contained inside _content_grid :
  *
  * ID (return value)|Type                            |Default  |Description
  * -----------------|--------------------------------|---------|-----------
  * _text            | @ref gui2::text_box            |mandatory|The text_box that shows the value.
+ * _prev            | @ref gui2::button              |mandatory|The previous button, clicking on it decreases value by 1.
+ * _next            | @ref gui2::button              |mandatory|The next button, clicking on it increases value by 1.
  * The following states exist:
- * * state_enabled - the scroll text is enabled.
- * * state_disabled - the scroll text is disabled.
- * List with the scrollbar container specific variables:
- * Key                      |Type                                            |Default     |Description
- * -------------------------|------------------------------------------------|------------|-----------
- * vertical_scrollbar_mode  | @ref guivartype_scrollbar_mode "scrollbar_mode"|initial_auto|Determines whether or not to show the scrollbar.
- * horizontal_scrollbar_mode| @ref guivartype_scrollbar_mode "scrollbar_mode"|initial_auto|Determines whether or not to show the scrollbar.
- * editable                 | @ref guivartype_bool "bool"                    |"true"      |If the contents of included multiline_text can be edited.
+ * * state_enabled - the spinner is enabled.
+ * * state_disabled - the spinner is disabled.
  */
-class scroll_text : public scrollbar_container
+class spinner : public container_base
 {
-	friend struct implementation::builder_scroll_text;
+	friend struct implementation::builder_spinner;
 
 public:
-	explicit scroll_text(const implementation::builder_scroll_text& builder);
-
-//	/** See @ref styled_widget::set_label. */
-	virtual void set_label(const t_string& label) override;
-
-//	void set_value(const std::string text);
-
-	void set_value(const t_string& label) {
-		set_label(label);
-	}
-
-	std::string get_value();
-
-	/** See @ref styled_widget::set_text_alignment. */
-	virtual void set_text_alignment(const PangoAlignment text_alignment) override;
-
-	/** See @ref styled_widget::set_use_markup. */
-	virtual void set_use_markup(bool use_markup) override;
+	explicit spinner(const implementation::builder_spinner& builder);
 
 	/** See @ref container_base::set_self_active. */
 	virtual void set_self_active(const bool active) override;
@@ -104,16 +85,32 @@ public:
 	virtual unsigned get_state() const override;
 
 	bool can_wrap() const override;
-	void set_can_wrap(bool can_wrap);
 
-	void set_editable(bool editable)
+	void set_value(const int val);
+
+	int get_value();
+
+	void prev()
 	{
-		editable_ = editable;
+		// Allow negatives?
+		if (get_value() > 0) {
+			set_value(get_value() - step_size_);
+		} else {
+			if (invalid_) {
+				set_value(0);
+			}
+		}
 	}
 
-	bool is_editable()
+	void next()
 	{
-		return editable_;
+		int val = get_value();
+		if (!invalid_) {
+			// No max value
+			set_value(val + step_size_);
+		} else {
+			set_value(0);
+		}
 	}
 
 private:
@@ -138,36 +135,21 @@ private:
 	 */
 	state_t state_;
 
-	bool wrap_on_;
+	/** The grid that holds the content. */
+	std::unique_ptr<grid> content_grid_;
 
-	PangoAlignment text_alignment_;
+	int step_size_;
 
-	bool editable_;
+	/** If the entered data is invalid. */
+	bool invalid_;
 
-	void finalize_subclass() override;
+	text_box* get_internal_text_box();
 
-	/** Used for moving scrollbars.
-	    Has to be called from signal notify_modified, otherwise
-	    doesn't work after invalidate_layout. */
-	void refresh();
-
-	unsigned get_horizontal_position() {
-		assert(horizontal_scrollbar());
-		return horizontal_scrollbar()->get_positioner_offset();
-	}
-
-	unsigned get_vertical_position() {
-		assert(vertical_scrollbar());
-		return vertical_scrollbar()->get_positioner_offset();
-	}
-
-	void place(const point& origin, const point& size);
+	void finalize_setup();
 
 public:
 	/** Static type getter that does not rely on the widget being constructed. */
 	static const std::string& type();
-
-	multiline_text* get_internal_text_box();
 
 private:
 	/***** ***** ***** inherited ****** *****/
@@ -182,9 +164,9 @@ private:
 
 // }---------- DEFINITION ---------{
 
-struct scroll_text_definition : public styled_widget_definition
+struct spinner_definition : public styled_widget_definition
 {
-	explicit scroll_text_definition(const config& cfg);
+	explicit spinner_definition(const config& cfg);
 
 	struct resolution : public resolution_definition
 	{
@@ -199,18 +181,13 @@ struct scroll_text_definition : public styled_widget_definition
 namespace implementation
 {
 
-struct builder_scroll_text : public builder_styled_widget
+struct builder_spinner : public builder_styled_widget
 {
-	explicit builder_scroll_text(const config& cfg);
+	explicit builder_spinner(const config& cfg);
 
 	using builder_styled_widget::build;
 
 	virtual std::unique_ptr<widget> build() const override;
-
-	scrollbar_container::scrollbar_mode vertical_scrollbar_mode;
-	scrollbar_container::scrollbar_mode horizontal_scrollbar_mode;
-	const PangoAlignment text_alignment;
-	bool editable;
 };
 
 } // namespace implementation

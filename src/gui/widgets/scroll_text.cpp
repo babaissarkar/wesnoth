@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2008 - 2024
+	Copyright (C) 2023 - 2024
 	by babaissarkar(Subhraman Sarkar) <suvrax@gmail.com>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
@@ -216,6 +216,10 @@ builder_scroll_text::builder_scroll_text(const config& cfg)
 	/** Horizontal scrollbar default to auto. AUTO_VISIBLE_FIRST_RUN doesn't work. */
 	if (horizontal_scrollbar_mode == scrollbar_container::AUTO_VISIBLE_FIRST_RUN) {
 		horizontal_scrollbar_mode = scrollbar_container::AUTO_VISIBLE;
+	}
+
+	if (vertical_scrollbar_mode == scrollbar_container::AUTO_VISIBLE_FIRST_RUN) {
+		vertical_scrollbar_mode = scrollbar_container::AUTO_VISIBLE;
 	}
 }
 

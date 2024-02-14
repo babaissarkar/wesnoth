@@ -129,8 +129,8 @@ function methods:insert(...)
 end
 
 ---Remove a location from the set
----@overload fun(x:integer, y:integer)
----@overload fun(loc:location|unit)
+---@overload fun(self:location_set, x:integer, y:integer)
+---@overload fun(self:location_set, loc:location|unit)
 function methods:remove(...)
 	local loc = wesnoth.map.read_location(...)
 	if loc ~= nil then
@@ -233,7 +233,8 @@ function methods:invert(width, height, border_size)
 	if type(width) == 'number' and type(height) == 'number' then
 		border_size = border_size or 0
 	elseif type(width) == 'userdata' and getmetatable(width) == 'terrain map' then
-		local map = width
+		---@type terrain_map
+		local map = width ---@diagnostic disable-line : assign-type-mismatch
 		width = map.playable_width
 		height = map.playable_height
 		border_size = map.border_size
