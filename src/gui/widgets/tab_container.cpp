@@ -19,10 +19,17 @@
 
 #include "gui/core/log.hpp"
 #include "gettext.hpp"
+#include "gui/auxiliary/find_widget.hpp"
 #include "gui/core/window_builder/helper.hpp"
 #include "gui/core/register_widget.hpp"
+#include "gui/widgets/listbox.hpp"
+#include "gui/widgets/stacked_widget.hpp"
 #include "gui/widgets/settings.hpp"
+#include "gui/widgets/window.hpp"
 #include "wml_exception.hpp"
+
+#include <functional>
+#include <iostream>
 
 #define LOG_SCOPE_HEADER get_control_type() + " [" + id() + "] " + __func__
 #define LOG_HEADER LOG_SCOPE_HEADER + ':'
@@ -60,6 +67,46 @@ bool tab_container::can_wrap() const
 	return true;
 }
 
+listbox& tab_container::get_internal_list()
+{
+	return find_widget<listbox>(&get_grid(), "_tab_list", false);
+}
+
+void tab_container::finalize_setup() {
+	for (const widget_data& row : list_items_) {
+		add_tab(row);
+	}
+	get_internal_list().connect_signal<event::NOTIFY_MODIFIED>(std::bind(&tab_container::change_selection, this));
+};
+
+void tab_container::add_tab(const widget_data row)
+{
+	listbox& list = get_internal_list();
+	list.add_row(row);
+}
+
+void tab_container::select_tab(unsigned index)
+{
+	if (index < list_items_.size()) {
+		get_internal_list().select_row(index);
+
+		grid* parent_grid = find_widget<grid>(this, "_content_grid", false, true);
+
+		if (parent_grid) {
+			std::cout << list_items_.at(index)["name"]["label"] << std::endl;
+			std::unique_ptr<widget> grid = std::move(builders_[list_items_.at(index)["name"]["label"]]->build());
+			grid.get()->set_id("_page");
+			parent_grid->swap_child("_page", std::move(grid), false);
+		}
+	}
+}
+
+void tab_container::change_selection() {
+	select_tab(get_internal_list().get_selected_row());
+	place(get_origin(), get_size());
+	queue_redraw();
+}
+
 // }---------- DEFINITION ---------{
 
 tab_container_definition::tab_container_definition(const config& cfg)
@@ -89,6 +136,25 @@ namespace implementation
 builder_tab_container::builder_tab_container(const config& cfg)
 	: implementation::builder_styled_widget(cfg)
 {
+	if (cfg.has_child("tab")) {
+		for(const auto & tab : cfg.child_range("tab"))
+		{
+			widget_data list_row;
+			widget_item item;
+
+			item["label"] = tab["image"];
+			list_row.emplace("image", item);
+			item["label"] = tab["name"];
+			list_row.emplace("name", item);
+
+			list_items.emplace_back(list_row);
+
+			if (tab.has_child("data")) {
+				auto builder = std::make_shared<builder_grid>(tab.mandatory_child("data"));
+				builders[tab["name"]] = builder;
+			}
+		}
+	}
 }
 
 std::unique_ptr<widget> builder_tab_container::build() const
@@ -99,7 +165,13 @@ std::unique_ptr<widget> builder_tab_container::build() const
 	assert(conf);
 
 	widget->init_grid(*conf->grid);
+
+	widget->set_items(list_items);
+	widget->set_builders(builders);
+
 	widget->finalize_setup();
+
+	widget->select_tab(list_items.size()-1);
 
 	DBG_GUI_G << "Window builder: placed tab_container '" << id
 			  << "' with definition '" << definition << "'.";
@@ -111,4 +183,4 @@ std::unique_ptr<widget> builder_tab_container::build() const
 
 // }------------ END --------------
 
-} // 
+} //

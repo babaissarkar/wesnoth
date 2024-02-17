@@ -16,6 +16,8 @@
 #pragma once
 
 #include "gui/widgets/container_base.hpp"
+#include "gui/widgets/listbox.hpp"
+#include "gui/core/window_builder.hpp"
 
 namespace gui2
 {
@@ -44,7 +46,7 @@ class tab_container : public container_base
 
 public:
 	explicit tab_container(const implementation::builder_tab_container& builder);
-	
+
 	/** See @ref container_base::set_self_active. */
 	virtual void set_self_active(const bool active) override;
 
@@ -57,7 +59,19 @@ public:
 	virtual unsigned get_state() const override;
 
 	bool can_wrap() const override;
-	
+
+	void add_tab(const widget_data row);
+
+	void set_items(std::vector<widget_data> list_items)
+	{
+		list_items_ = list_items;
+	}
+
+	void set_builders(builder_grid_map builders) {
+		builders_ = builders;
+	}
+
+	void select_tab(unsigned index);
 private:
 	/**
 	 * Possible states of the widget.
@@ -77,7 +91,14 @@ private:
 	 */
 	state_t state_;
 
-	void finalize_setup() {};
+	builder_grid_map builders_;
+	std::vector<widget_data> list_items_;
+
+	listbox& get_internal_list();
+
+	void finalize_setup();
+
+	void change_selection();
 
 public:
 	/** Static type getter that does not rely on the widget being constructed. */
@@ -88,6 +109,8 @@ private:
 
 	/** Inherited from styled_widget, implemented by REGISTER_WIDGET. */
 	virtual const std::string& get_control_type() const override;
+
+//	void place(const point& origin, const point& size);
 
 };
 
@@ -117,6 +140,10 @@ struct builder_tab_container : public builder_styled_widget
 	using builder_styled_widget::build;
 
 	virtual std::unique_ptr<widget> build() const override;
+
+	builder_grid_map builders;
+
+	std::vector<widget_data> list_items;
 };
 
 } // namespace implementation
