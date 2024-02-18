@@ -90,7 +90,7 @@ private:
 	void finalize_setup();
 
 	void change_selection();
-	
+
 	void set_items(std::vector<widget_data> list_items)
 	{
 		list_items_ = list_items;

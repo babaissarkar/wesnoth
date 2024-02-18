@@ -29,7 +29,6 @@
 #include "wml_exception.hpp"
 
 #include <functional>
-#include <iostream>
 
 #define LOG_SCOPE_HEADER get_control_type() + " [" + id() + "] " + __func__
 #define LOG_HEADER LOG_SCOPE_HEADER + ':'
@@ -93,7 +92,6 @@ void tab_container::select_tab(unsigned index)
 		grid* parent_grid = find_widget<grid>(this, "_content_grid", false, true);
 
 		if (parent_grid) {
-			std::cout << list_items_.at(index)["name"]["label"] << std::endl;
 			std::unique_ptr<widget> grid = std::move(builders_[list_items_.at(index)["name"]["label"]]->build());
 			grid.get()->set_id("_page");
 			parent_grid->swap_child("_page", std::move(grid), false);
