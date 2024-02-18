@@ -60,16 +60,7 @@ public:
 
 	bool can_wrap() const override;
 
-	void add_tab(const widget_data row);
-
-	void set_items(std::vector<widget_data> list_items)
-	{
-		list_items_ = list_items;
-	}
-
-	void set_builders(builder_grid_map builders) {
-		builders_ = builders;
-	}
+	void add_tab_entry(const widget_data row);
 
 	void select_tab(unsigned index);
 private:
@@ -99,6 +90,15 @@ private:
 	void finalize_setup();
 
 	void change_selection();
+	
+	void set_items(std::vector<widget_data> list_items)
+	{
+		list_items_ = list_items;
+	}
+
+	void set_builders(builder_grid_map builders) {
+		builders_ = builders;
+	}
 
 public:
 	/** Static type getter that does not rely on the widget being constructed. */

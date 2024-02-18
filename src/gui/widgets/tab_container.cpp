@@ -74,12 +74,12 @@ listbox& tab_container::get_internal_list()
 
 void tab_container::finalize_setup() {
 	for (const widget_data& row : list_items_) {
-		add_tab(row);
+		add_tab_entry(row);
 	}
 	get_internal_list().connect_signal<event::NOTIFY_MODIFIED>(std::bind(&tab_container::change_selection, this));
 };
 
-void tab_container::add_tab(const widget_data row)
+void tab_container::add_tab_entry(const widget_data row)
 {
 	listbox& list = get_internal_list();
 	list.add_row(row);
