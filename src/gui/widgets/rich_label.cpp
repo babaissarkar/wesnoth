@@ -569,8 +569,6 @@ void rich_label::set_label(const t_string& text)
 	} // for loop ends
 
 	// padding, avoids text from getting cut off at the bottom
-//	h_ += 20;
-
 } // function ends
 
 void rich_label::default_text_config(config* txt_ptr, t_string text) {

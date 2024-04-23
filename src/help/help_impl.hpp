@@ -96,7 +96,7 @@ public:
 	}
 
 	explicit topic_text(std::shared_ptr<topic_generator> g):
-		unparsed_text_(""), //TODO get unparsed text from generator?
+		unparsed_text_(), //TODO get unparsed text from generator?
 		parsed_text_(),
 		generator_(g)
 	{

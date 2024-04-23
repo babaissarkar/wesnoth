@@ -233,11 +233,12 @@ void help_browser::on_topic_select()
 		
 		find_widget<label>(this, "topic_title", false).set_label(topic->title);
 		find_widget<rich_label>(this, "topic_text", false).set_label(topic->text.unparsed_text());
+		PLAIN_LOG << topic->text.unparsed_text();
 
 //		parsed_pages_.emplace(topic_id, topic_pages.get_page_count());
 //		topic_pages.add_page(data);
 
-		invalidate_layout();
+		get_window()->invalidate_layout();
 	}
 
 	if(!history_.empty()) {
