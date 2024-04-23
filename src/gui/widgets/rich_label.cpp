@@ -570,7 +570,8 @@ void rich_label::set_label(const t_string& text)
 
 	// padding, avoids text from getting cut off at the bottom
 	h_ += 20;
-
+	PLAIN_LOG << "(set_label) " << text;
+	PLAIN_LOG << "Height : " << h_ << " Width : " << w_;
 } // function ends
 
 void rich_label::default_text_config(config* txt_ptr, t_string text) {
