@@ -22,6 +22,8 @@
 #include "gui/widgets/button.hpp"
 #include "gui/widgets/image.hpp"
 #include "gui/widgets/multi_page.hpp"
+#include "gui/widgets/label.hpp"
+#include "gui/widgets/rich_label.hpp"
 #include "gui/widgets/scroll_label.hpp"
 #include "gui/widgets/settings.hpp"
 #include "gui/widgets/settings.hpp"
@@ -188,7 +190,7 @@ static std::string format_help_text(const config& cfg)
 
 void help_browser::on_topic_select()
 {
-	multi_page& topic_pages = find_widget<multi_page>(this, "topic_text_pages", false);
+//	multi_page& topic_pages = find_widget<multi_page>(this, "topic_text_pages", false);
 	tree_view& topic_tree = find_widget<tree_view>(this, "topic_tree", false);
 
 	if(topic_tree.empty()) {
@@ -228,9 +230,12 @@ void help_browser::on_topic_select()
 		item.clear();
 		item["label"] = topic->title;
 		data.emplace("topic_title", item);
+		
+		find_widget<label>(this, "topic_title", false).set_label(topic->title);
+		find_widget<rich_label>(this, "topic_text", false).set_label(topic->text.unparsed_text());
 
-		parsed_pages_.emplace(topic_id, topic_pages.get_page_count());
-		topic_pages.add_page(data);
+//		parsed_pages_.emplace(topic_id, topic_pages.get_page_count());
+//		topic_pages.add_page(data);
 
 		invalidate_layout();
 	}
@@ -243,12 +248,12 @@ void help_browser::on_topic_select()
 	history_pos_ = std::prev(history_.end());
 
 	if(history_pos_ != history_.begin()) {
-			find_widget<button>(this, "back", false).set_visible(widget::visibility::visible);
+		find_widget<button>(this, "back", false).set_visible(widget::visibility::visible);
 	}
 	find_widget<button>(this, "next", false).set_visible(widget::visibility::hidden);
 
-	const unsigned topic_i = parsed_pages_.at(topic_id);
-	topic_pages.select_page(topic_i);
+//	const unsigned topic_i = parsed_pages_.at(topic_id);
+//	topic_pages.select_page(topic_i);
 }
 
 void help_browser::on_history_navigate(bool backwards)
