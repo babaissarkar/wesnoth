@@ -70,6 +70,9 @@
 
 #endif
 
+#ifdef __ANDROID__
+#include <SDL2/SDL_system.h>
+#endif
 
 static lg::log_domain log_filesystem("filesystem");
 #define DBG_FS LOG_STREAM(debug, log_filesystem)
