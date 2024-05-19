@@ -1,6 +1,6 @@
 /*
 	Copyright (C) 2024
-	by babaissarkar(Subhraman Sarkar) <suvrax@gmail.com>
+	by Subhraman Sarkar (babaissarkar) <suvrax@gmail.com>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
 	This program is free software; you can redistribute it and/or modify
@@ -33,28 +33,8 @@ namespace implementation
 // ------------ WIDGET -----------{
 
 /**
- * @ingroup GUIWidgetWML
  *
- * A rich_label takes marked up text and shows it correctly formatted that can be wrapped but no scrollbars are provided.
- *
- * A rich_label has two states.
- *
- * The following states exist:
- * * state_enabled - the rich_label is enabled.
- * * state_disabled - the rich_label is disabled.
- *
- * Key                |Type                                |Default |Description
- * -------------------|------------------------------------|--------|-------------
- * link_color         | @ref guivartype_string "string"    |\#ffff00|The color to render links with. This string will be used verbatim in pango markup for each link.
- *
- * The rich_label specific variables:
- * Key                |Type                                |Default|Description
- * -------------------|------------------------------------|-------|-------------
- * wrap               | @ref guivartype_bool "bool"        |false  |Is wrapping enabled for the rich_label.
- * characters_per_line| @ref guivartype_unsigned "unsigned"|0      |Sets the maximum number of characters per line. The amount is an approximate since the width of a character differs. E.g. iii is smaller than MMM. When the value is non-zero it also implies can_wrap is true. When having long strings wrapping them can increase readability, often 66 characters per line is considered the optimum for a one column text.
- * text_alignment     | @ref guivartype_h_align "h_align"  |left   |The way the text is aligned inside the canvas.
- * can_shrink         | @ref guivartype_bool "bool"        |false  |Whether the rich_label can shrink past its optimal size.
- * link_aware         | @ref guivartype_bool "bool"        |false  |Whether the rich_label is link aware. This means it is rendered with links highlighted, and responds to click events on those links.
+ * A rich_label takes marked up text and shows it correctly formatted and wrapped but no scrollbars are provided.
  */
 class rich_label : public styled_widget
 {
@@ -63,61 +43,51 @@ class rich_label : public styled_widget
 public:
 	explicit rich_label(const implementation::builder_rich_label& builder);
 
-	/** See @ref widget::can_wrap. */
 	virtual bool can_wrap() const override
 	{
 		return can_wrap_ || characters_per_line_ != 0;
 	}
 
-	/** See @ref styled_widget::get_characters_per_line. */
 	virtual unsigned get_characters_per_line() const override
 	{
 		return characters_per_line_;
 	}
 
-	/** See @ref styled_widget::get_link_aware. */
 	virtual bool get_link_aware() const override
 	{
 		return link_aware_;
 	}
 
-	/** See @ref styled_widget::get_link_aware. */
 	virtual color_t get_link_color() const override
 	{
 		return link_color_;
 	}
 
-	/** See @ref styled_widget::set_active. */
 	virtual void set_active(const bool active) override;
 
-	/** See @ref styled_widget::get_active. */
 	virtual bool get_active() const override
 	{
 		return state_ != DISABLED;
 	}
 
-	/** See @ref styled_widget::get_state. */
 	virtual unsigned get_state() const override
 	{
 		return state_;
 	}
 
-	/** See @ref widget::disable_click_dismiss. */
 	bool disable_click_dismiss() const override
 	{
 		return false;
 	}
 
-	/** See @ref widget::can_mouse_focus. */
 	virtual bool can_mouse_focus() const override
 	{
 		return !tooltip().empty() || get_link_aware();
 	}
 
-	/** See @ref styled_widget::update_canvas. */
 	virtual void update_canvas() override;
 
-	/***** ***** ***** setters / getters for members ***** ****** *****/
+	/* **** ***** ***** setters / getters for members ***** ****** **** */
 
 	void set_can_wrap(const bool wrap)
 	{
@@ -217,6 +187,9 @@ private:
 	/** Width and height of the canvas */
 	unsigned w_, h_, x_, y_;
 
+	/** Padding */
+	unsigned padding_;
+
 	/** Height of current text block */
 	unsigned txt_height_;
 
@@ -227,6 +200,15 @@ private:
 	void default_text_config(config* txt_ptr, t_string text = "");
 
 	void add_text_with_attribute(config& text_cfg, std::string text, std::string attr_name = "", std::string extra_data = "");
+	void add_text_with_attributes(config& text_cfg, std::string text, std::vector<std::string> attr_names, std::vector<std::string> extra_data);
+
+	void start_new_text_block(config* text_cfg, unsigned txt_height_);
+
+	void append_if_not_empty(config_attribute_value* key, std::string suffix) {
+		if (!key->str().empty()) {
+			*key = key->str() + suffix;
+		}
+	}
 
 	/** size calculation functions */
 	point get_text_size(config text_cfg, unsigned width = 0);
@@ -234,7 +216,7 @@ private:
 
 	wfl::map_formula_callable setup_text_renderer(config text_cfg, unsigned width = 0);
 
-	size_t get_split_location(int img_height);
+	size_t get_split_location(std::string text, int img_height);
 
 	/** link variables and functions */
 	std::vector<std::pair<rect, std::string>> links_;
@@ -264,7 +246,7 @@ private:
 	/** Inherited from styled_widget, implemented by REGISTER_WIDGET. */
 	virtual const std::string& get_control_type() const override;
 
-	/***** ***** ***** signal handlers ***** ****** *****/
+	/* **** ***** ***** signal handlers ***** ****** **** */
 
 	/**
 	 * Left click signal handler: checks if we clicked on a hyperlink
