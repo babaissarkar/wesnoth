@@ -1,6 +1,6 @@
 /*
 	Copyright (C) 2024
-	by babaissarkar(Subhraman Sarkar) <suvrax@gmail.com>
+	by Subhraman Sarkar (babaissarkar) <suvrax@gmail.com>
 	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
 
 	This program is free software; you can redistribute it and/or modify
@@ -29,6 +29,7 @@
 #include "help/help_impl.hpp"
 #include "gettext.hpp"
 #include "serialization/unicode.hpp"
+#include "serialization/string_utils.hpp"
 #include "wml_exception.hpp"
 
 #include <functional>
@@ -56,6 +57,7 @@ rich_label::rich_label(const implementation::builder_rich_label& builder)
 	, h_(0)
 	, x_(0)
 	, y_(0)
+	, padding_(5)
 	, txt_height_(0)
 	, prev_txt_height_(0)
 {
@@ -102,16 +104,46 @@ void rich_label::add_text_with_attribute(config& text_cfg, std::string text, std
 	text_cfg["text"] = text_cfg["text"].str() + text;
 
 	if (!attr_name.empty()) {
-		text_cfg["attr_name"] = (text_cfg["attr_name"].str().empty() ? "" : (text_cfg["attr_name"].str() + ",")) + attr_name;
-		text_cfg["attr_start"] = (text_cfg["attr_start"].str().empty() ? "" : (text_cfg["attr_start"].str() + ",")) +  std::to_string(start);
-		text_cfg["attr_end"] = (text_cfg["attr_end"].str().empty() ? "" : (text_cfg["attr_end"].str() + ",")) + std::to_string(text_cfg["text"].str().size());
+		append_if_not_empty(&text_cfg["attr_name"], ",");
+		text_cfg["attr_name"] = text_cfg["attr_name"].str() + attr_name;
+
+		append_if_not_empty(&text_cfg["attr_start"], ",");
+		text_cfg["attr_start"] = text_cfg["attr_start"].str() + std::to_string(start);
+
+		append_if_not_empty(&text_cfg["attr_end"], ",");
+		text_cfg["attr_end"] = text_cfg["attr_end"].str() + std::to_string(text_cfg["text"].str().size());
+
 		if (!extra_data.empty()) {
-			text_cfg["attr_data"] = (text_cfg["attr_data"].str().empty() ? "" : (text_cfg["attr_data"].str() + ",")) + extra_data;
+			append_if_not_empty(&text_cfg["attr_data"], ",");
+			text_cfg["attr_data"] = text_cfg["attr_data"].str() + extra_data;
 		}
 	}
 }
 
-size_t rich_label::get_split_location(int img_height) {
+void rich_label::add_text_with_attributes(config& text_cfg, std::string text, std::vector<std::string> attr_names, std::vector<std::string> extra_data) {
+
+	size_t start = text_cfg["text"].str().size();
+	text_cfg["text"] = text_cfg["text"].str() + text;
+
+	if (!attr_names.empty()) {
+		append_if_not_empty(&text_cfg["attr_name"], ",");
+		text_cfg["attr_name"] = text_cfg["attr_name"].str() + utils::join(attr_names);
+
+		for (size_t i = 0; i < attr_names.size(); i++) {
+			append_if_not_empty(&text_cfg["attr_start"], ",");
+			text_cfg["attr_start"] = text_cfg["attr_start"].str() + std::to_string(start);
+			append_if_not_empty(&text_cfg["attr_end"], ",");
+			text_cfg["attr_end"] = text_cfg["attr_end"].str() + std::to_string(text_cfg["text"].str().size());
+		}
+
+		if (!extra_data.empty()) {
+			append_if_not_empty(&text_cfg["attr_data"], ",");
+			text_cfg["attr_data"] = text_cfg["attr_data"].str() + utils::join(extra_data);
+		}
+	}
+}
+
+size_t rich_label::get_split_location(std::string text, int img_height) {
 	point wrap_position = get_column_line(point(w_, img_height));
 
 	size_t len = 0;
@@ -120,29 +152,36 @@ size_t rich_label::get_split_location(int img_height) {
 	}
 	len += wrap_position.x;
 
+	// break only at word boundary
+	char c;
+	while((c = text.at(len)) != ' ') {
+		len--;
+	}
+
 	return len;
 }
 
 void rich_label::set_label(const t_string& text)
 {
 	// Initialization
-	w_ = 800;
+	w_ = 800; // TODO test without fixed width
 	h_ = 0;
 	unparsed_text_ = text;
 	text_dom_.clear();
 	links_.clear();
 	help::topic_text marked_up_text(text);
-	std::vector<std::string> parsed_text =  marked_up_text.parsed_text();
+	std::vector<std::string> parsed_text = marked_up_text.parsed_text();
 
 	config* curr_item = nullptr;
 
 	bool is_image = false;
 	bool floating = false;
 	bool new_text_block = false;
-	point wrap_position;
 	point img_size;
 	unsigned col_width = 0;
 	unsigned max_col_height = 0;
+	prev_txt_height_ = 0;
+	txt_height_ = 0;
 
 	for (size_t i = 0; i < parsed_text.size(); i++) {
 		bool last_entry = (i == parsed_text.size() - 1);
@@ -157,37 +196,25 @@ void rich_label::set_label(const t_string& text)
 				floating = cfg.mandatory_child("img")["float"].to_bool();
 
 				curr_item = &(text_dom_.add_child("image"));
+
 				(*curr_item)["name"] = cfg.mandatory_child("img")["src"];
 				std::string align = cfg.mandatory_child("img")["align"];
 				if (align.empty()) {
 					align = "left";
 				}
 
-				if (floating) {
-					if (align == "right") {
-						(*curr_item)["x"] = "(width - image_width - img_x)";
-					} else {
-						// left aligned images are default for now
-						(*curr_item)["x"] = "(img_x)";
-					}
+				if (align == "right") {
+					(*curr_item)["x"] = floating ? "(width - image_width - img_x)" : "(width - image_width - pos_x)";
+				} else if (align == "middle" || align == "center") {
+					// works for single image only
+					(*curr_item)["x"] = floating ? "(img_x + (width - image_width)/2.0)" : "(pos_x + (width - image_width)/2.0)";
 				} else {
-					if (align == "right") {
-						(*curr_item)["x"] = "(width - image_width - pos_x)";
-					} else {
-						// left aligned images are default for now
-						(*curr_item)["x"] = "(pos_x)";
-					}
+					// left aligned images are default for now
+					(*curr_item)["x"] = floating ? "(img_x)" : "(pos_x)";
 				}
-
-//				if (floating) {
-//					(*curr_item)["y"] = "(img_y)";
-//				} else {
-					(*curr_item)["y"] = "(pos_y)";
-//				}
+				(*curr_item)["y"] = floating ? "(img_y + pos_y)" : "(pos_y)";
 				(*curr_item)["h"] = "(image_height)";
 				(*curr_item)["w"] = "(image_width)";
-
-				bool break_line = cfg.mandatory_child("img")["break"].to_bool();
 
 				// Sizing
 				if (floating) {
@@ -201,93 +228,108 @@ void rich_label::set_label(const t_string& text)
 				std::stringstream actions;
 				actions << "([";
 				if (floating) {
+
 					if (align == "left") {
-						x_ = img_size.x + 5;
-						actions << "set_var('pos_x', image_width + 5)";
+						x_ = img_size.x + padding_;
+						actions << "set_var('pos_x', image_width + padding)";
 					} else if (align == "right") {
 						x_ = 0;
 						actions << "set_var('pos_x', 0)";
 						actions << ",";
 						actions << "set_var('ww', image_width)";
 					}
-					actions << "," <<  "set_var('img_y', img_y + image_height + 5)";
+
+					img_size.y += padding_;
+					actions << "," <<  "set_var('img_y', img_y + image_height + padding)";
+
 				} else {
-					if (align == "left" && !break_line) {
-						x_ += img_size.x + 5;
-						actions << "set_var('pos_x', pos_x + image_width + 5)";						
-					} else {
-						if (align == "right" && !break_line) {
-							actions << "set_var('ww', image_width)";
-							actions << ",";
-						}
-						x_ = 0;
-						actions << "set_var('pos_x', 0)";
-					}
-				}
-				if (break_line) {
-					actions << "," << "set_var('pos_y', pos_y + image_height + 5)";
+					x_ = img_size.x + padding_;
+					actions << "set_var('pos_x', pos_x + image_width + padding)";
 				}
 				actions << "])";
 
 				(*curr_item)["actions"] = actions.str();
 				actions.str("");
 
-				//FIXME image could be in the middle of a text block
-
+				//TODO image could be in the middle of a text block
 				is_image = true;
-				if (break_line && !floating) {
-					new_text_block = true;
-				}
-
-				PLAIN_LOG << "(img) x :" << x_ << ", y :" << y_ << ", h: " << h_;
+				new_text_block = true;
 
 			} else {
+				if (is_image && (!floating)) {
+					x_ = 0;
+					(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('pos_y', pos_y + image_height + padding)])";
+				}
+
 				if (curr_item == nullptr || new_text_block) {
+					prev_txt_height_ += txt_height_ + padding_;
+					txt_height_ = 0;
+
 					curr_item = &(text_dom_.add_child("text"));
 					default_text_config(curr_item);
 					new_text_block = false;
-				}
-				
-				if (is_image && !floating) {
-					prev_txt_height_ += img_size.y + 5;
-					img_size = point(0,0);
-					
-					curr_item = &(text_dom_.add_child("text"));
-					default_text_config(curr_item);
+//					new_text_block(curr_item, txt_height_);
 				}
 
-				// Text type tags
+				// }---------- TEXT TAGS -----------{
 
-				int tmp_h = get_text_size(*curr_item, w_ - img_size.x).y;
+				point prev_block_size = get_text_size(*curr_item, w_ - x_);
+				int tmp_h = prev_block_size.y;
 
 				if (cfg.optional_child("ref")) {
-					setup_text_renderer(*curr_item);
-					point t_start = get_xy_from_offset((*curr_item)["text"].str().size());
+
+					setup_text_renderer(*curr_item, w_ - img_size.x);
+					point t_start = get_xy_from_offset(utf8::size((*curr_item)["text"].str()));
 
 					std::string link_text = cfg.mandatory_child("ref")["text"].str();
 					link_text = link_text.empty() ? cfg.mandatory_child("ref")["dst"] : link_text;
-
 					add_text_with_attribute((*curr_item), link_text, "color", font::YELLOW_COLOR.to_hex_string().substr(1));
 
-					setup_text_renderer(*curr_item);
-					point t_end = get_xy_from_offset((*curr_item)["text"].str().size());
+					setup_text_renderer(*curr_item, w_ - img_size.x);
+					point t_end = get_xy_from_offset(utf8::size((*curr_item)["text"].str()));
+
 					// TODO Needs to be adjusted if ref's font size is changed
+					point link_start(x_ + t_start.x, prev_txt_height_ + t_start.y);
 					t_end.y += font::get_max_height(font::SIZE_NORMAL);
 
+					// TODO link after floating images toward right
+
 					// Add link
-					// TODO only works if text is on the right side of the image
-					rect link_rect = {
-							static_cast<int>(x_ + t_start.x),
-							static_cast<int>(prev_txt_height_ + t_start.y),
-							static_cast<int>(t_end.x - t_start.x),
-							static_cast<int>(t_end.y - t_start.y)
-					};
+					if (t_end.x > t_start.x) {
+						point link_size = t_end - t_start;
+						rect link_rect = {
+								link_start.x,
+								link_start.y,
+								link_size.x,
+								link_size.y,
+						};
+						links_.push_back(std::pair(link_rect, cfg.mandatory_child("ref")["dst"]));
 
-					links_.push_back(std::pair(link_rect, cfg.mandatory_child("ref")["dst"]));
+					} else {
+						//link straddles two lines, break into two rects
+						point t_size(w_ - link_start.x - (x_ == 0 ? img_size.x : 0), t_end.y - t_start.y);
+						point link_start2(x_, link_start.y + font::get_max_height(font::SIZE_NORMAL));
+						point t_size2(t_end.x, t_end.y - t_start.y);
 
-//					is_image = false;
+						rect link_rect = {
+								link_start.x,
+								link_start.y,
+								t_size.x,
+								t_size.y,
+						};
 
-					PLAIN_LOG << "(ref) x :" << x_ << " y :" << y_ << " h :" << h_ << " pth : " << prev_txt_height_;
+						rect link_rect2 = {
+								link_start2.x,
+								link_start2.y,
+								t_size2.x,
+								t_size2.y,
+						};
+
+						links_.push_back(std::pair(link_rect, cfg.mandatory_child("ref")["dst"]));
+						links_.push_back(std::pair(link_rect2, cfg.mandatory_child("ref")["dst"]));
+					}
+
+					is_image = false;
 
 				} else if (cfg.optional_child("bold")||cfg.optional_child("b")) {
 
@@ -308,6 +350,7 @@ void rich_label::set_label(const t_string& text)
 					}
 
 					is_image = false;
+
 				} else if (cfg.optional_child("underline")||cfg.optional_child("u")) {
 
 					if (cfg.optional_child("underline")) {
@@ -320,83 +363,54 @@ void rich_label::set_label(const t_string& text)
 
 				} else if (cfg.optional_child("header")||cfg.optional_child("h")) {
 					// Header starts in a new line/paragraph
-					if (is_image) {
-						(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('pos_y', pos_y + image_height)])";
-					} else {
-						(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('pos_y', pos_y + text_height)])";
-					}
-					prev_txt_height_ += std::max(img_size.y, get_text_size(*curr_item, w_ - img_size.x).y);
-					txt_height_ = 0;
 
-					// Header config
-					curr_item = &(text_dom_.add_child("text"));
-					default_text_config(curr_item);
+					append_if_not_empty(&((*curr_item)["text"]), "\n");
+					append_if_not_empty(&((*curr_item)["attr_name"]), ",");
+					append_if_not_empty(&((*curr_item)["attr_start"]), ",");
+					append_if_not_empty(&((*curr_item)["attr_end"]), ",");
+					append_if_not_empty(&((*curr_item)["attr_data"]), ",");
 
-					size_t start = 0;
+					std::stringstream header_text;
 					if (cfg.optional_child("header")) {
-						(*curr_item)["text"] = cfg.mandatory_child("header")["text"];
+						header_text << cfg.mandatory_child("header")["text"].str() + "\n";
 					} else if (cfg.optional_child("h")) {
-						(*curr_item)["text"] = cfg.mandatory_child("h")["text"];
+						header_text << cfg.mandatory_child("h")["text"].str() + "\n";
 					}
-					(*curr_item)["attr_name"] = "color,size";
-					(*curr_item)["attr_start"] = std::to_string(start) + "," + std::to_string(start);
-					(*curr_item)["attr_end"] =
-							std::to_string((*curr_item)["text"].str().size())
-							+ ","
-							+ std::to_string((*curr_item)["text"].str().size());
-					(*curr_item)["attr_data"] =
-							font::TITLE_COLOR.to_hex_string().substr(1)
-							+ ","
-							+ std::to_string(font::SIZE_TITLE);
 
-					prev_txt_height_ += get_text_size(*curr_item, w_ - img_size.x).y;
+					std::vector<std::string> attrs = {"color", "size"};
+					std::vector<std::string> attr_data;
+					attr_data.push_back(font::TITLE_COLOR.to_hex_string().substr(1));
+					attr_data.push_back(std::to_string(font::SIZE_TITLE));
+
+					add_text_with_attributes((*curr_item), header_text.str(), attrs, attr_data);
+
 					is_image = false;
-					new_text_block = true;
 
-				} else if(cfg.optional_child("span")||cfg.optional_child("format")) {
-					//TODO add bold, italic and underline
-				
-					config& span_cfg = cfg.mandatory_child("span");
-					size_t start = (*curr_item)["text"].str().size();
-					PLAIN_LOG << (*curr_item)["text"];
-					(*curr_item)["text"] = span_cfg["text"].str();
-					size_t end = (*curr_item)["text"].str().size();
+				} else if (cfg.optional_child("span")||cfg.optional_child("format")) {
 
-					PLAIN_LOG << span_cfg["text"];
-					PLAIN_LOG << (*curr_item)["text"];
-
-					std::stringstream attrs;
-					std::stringstream attr_start;
-					std::stringstream attr_end;
-					std::stringstream attr_data;
-
-					size_t i = 1;
-					for (const auto& attr : span_cfg.attribute_range()) {
-						if (attr.first != "text") {
-							PLAIN_LOG << attr.first << "," << attr.second;
-							attrs << attr.first;
-							attr_start << start;
-							attr_end << end;
-							attr_data << attr.second;
-							if (i != span_cfg.attribute_count() - 1) {
-								PLAIN_LOG << i << "," << span_cfg.attribute_count();
-								attrs << ",";
-								attr_start << ",";
-								attr_end << ",";
-								attr_data << ",";
-							}
-						}
-						i++;
+					config* span_cfg = nullptr;
+					if (cfg.optional_child("span")) {
+						span_cfg = &cfg.mandatory_child("span");
+					} else if (cfg.optional_child("format")) {
+						span_cfg = &cfg.mandatory_child("format");
 					}
 
-					(*curr_item)["attr_name"] = attrs.str();
-					(*curr_item)["attr_start"] = attr_start.str();
-					(*curr_item)["attr_end"] = attr_end.str();
-					(*curr_item)["attr_data"] = attr_data.str();
+					std::vector<std::string> attrs;
+					std::vector<std::string> attr_data;
 
-					PLAIN_LOG << curr_item->debug();
+					for (const auto& attr : span_cfg->attribute_range()) {
+						if (attr.first != "text") {
+							attrs.push_back(attr.first);
+							attr_data.push_back(attr.second);
+						}
+					}
 
-				} else if(cfg.optional_child("table")) {
+					add_text_with_attributes((*curr_item), (*span_cfg)["text"], attrs, attr_data);
+
+					is_image = false;
+
+				// }---------- TABLE TAGS -----------{
+				} else if (cfg.optional_child("table")) {
 					// setup column width
 					unsigned columns = cfg.mandatory_child("table")["col"].to_int();
 					unsigned width = cfg.mandatory_child("table")["width"].to_int();
@@ -414,7 +428,7 @@ void rich_label::set_label(const t_string& text)
 					PLAIN_LOG << "start table : " << "col=" << columns;
 					PLAIN_LOG << "col_width : " << col_width;
 
-				} else if(cfg.optional_child("jump")) {
+				} else if (cfg.optional_child("jump")) {
 					if (col_width > 0) {
 						PLAIN_LOG << "(jump) new block/col";
 
@@ -431,12 +445,12 @@ void rich_label::set_label(const t_string& text)
 							new_text_block = true;
 						}
 					}
-				} else if( cfg.optional_child("break") || cfg.optional_child("br") ) {
+				} else if (cfg.optional_child("break") || cfg.optional_child("br")) {
 					max_col_height = std::max(max_col_height, txt_height_);
 					max_col_height = std::max(max_col_height, static_cast<unsigned>(img_size.y));
 					PLAIN_LOG << "(br) " << max_col_height;
 					PLAIN_LOG << curr_item->debug();
-					(*curr_item)["actions"] = boost::str(boost::format("([set_var('pos_x', 0), set_var('pos_y', pos_y + %d + 3), set_var('tw', width - pos_x - %d)])") % max_col_height % col_width);
+					(*curr_item)["actions"] = boost::str(boost::format("([set_var('pos_x', 0), set_var('pos_y', pos_y + %d + %d), set_var('tw', width - pos_x - %d)])") % max_col_height % padding_ % col_width);
 
 					//linebreak
 					x_ = 0;
@@ -448,7 +462,7 @@ void rich_label::set_label(const t_string& text)
 						new_text_block = true;
 					}
 
-				} else if(cfg.optional_child("endtable")) {
+				} else if (cfg.optional_child("endtable")) {
 					PLAIN_LOG << "(endtable) " << max_col_height;
 					PLAIN_LOG << curr_item->debug();
 					max_col_height = std::max(max_col_height, txt_height_);
@@ -467,68 +481,61 @@ void rich_label::set_label(const t_string& text)
 					}
 				}
 
-				if (x_ != 0) {
-					// update text positin if there is no line break
-					setup_text_renderer(*curr_item);
-					x_ = get_xy_from_offset((*curr_item)["text"].str().size()).x;
-				}
-
 				// update text size and widget height
 				if (tmp_h > get_text_size(*curr_item, w_ - img_size.x).y) {
 					tmp_h = 0;
 				}
-				txt_height_ += get_text_size(*curr_item, w_ - img_size.x).y - tmp_h;
-				if (img_size.y < static_cast<int>(txt_height_+prev_txt_height_)) {
-					img_size = point(0,0);
-					y_ = h_;
-					h_ = txt_height_ + prev_txt_height_;
-				}
 
+				txt_height_ += get_text_size(*curr_item, w_ - img_size.x).y - tmp_h;
 			}
 
 		} else if (!line.empty()) {
+			if (is_image && (!floating)) {
+				x_ = 0;
+				(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('pos_y', pos_y + image_height + padding)])";
+			}
+
 			if (curr_item == nullptr || new_text_block) {
+				prev_txt_height_ += txt_height_ + padding_;
+				txt_height_ = 0;
+
 				curr_item = &(text_dom_.add_child("text"));
 				default_text_config(curr_item);
 				new_text_block = false;
+//				start_new_text_block(curr_item, txt_height_);
 			}
-			
-			if (is_image && !floating) {
-				prev_txt_height_ += img_size.y + 5;
-				img_size = point(0,0);
-				
-				curr_item = &(text_dom_.add_child("text"));
-				default_text_config(curr_item);
-			}
-			
-			PLAIN_LOG << "(text) x :" << x_ << ", y :" << y_ << ", h: " << h_;
 
 			(*curr_item)["font_size"] = font::SIZE_NORMAL;
-			
-			int tmp_h = get_text_size(*curr_item, w_ - img_size.x).y;
+
+			int tmp_h = get_text_size(*curr_item, w_ - x_).y;
 
 			(*curr_item)["text"] = (*curr_item)["text"].str() + line;
 
-			if ( floating && (img_size.y > 0) && (get_text_size(*curr_item, w_ - img_size.x).y > img_size.y) ) {
+			point text_size;
+			text_size.x = get_text_size(*curr_item, w_ - (x_ == 0 ? img_size.x : x_)).x - x_;
+			text_size.y = get_text_size(*curr_item, w_ - (x_ == 0 ? img_size.x : x_)).y;
+
+			if ( floating && (img_size.y > 0) && (text_size.y > img_size.y) ) {
 				PLAIN_LOG << "wrap start";
 
-				size_t len = get_split_location(img_size.y);
-
-				t_string* removed_part = new t_string((*curr_item)["text"].str().substr(len));
-
+				size_t len = get_split_location((*curr_item)["text"].str(), img_size.y);
+				t_string* removed_part = new t_string((*curr_item)["text"].str().substr(len+1));
 				(*curr_item)["text"] = (*curr_item)["text"].str().substr(0, len);
-				(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('pos_y', pos_y + text_height)])";
+				(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('ww', 0), set_var('pos_y', pos_y + text_height)])";
 
+				// New text block
 				x_ = 0;
-				prev_txt_height_ += std::max(img_size.y, get_text_size(*curr_item, w_ - img_size.x).y);
+				prev_txt_height_ += img_size.y;
 				txt_height_ = 0;
+				img_size = point(0,0);
+				floating = false;
 
 				curr_item = &(text_dom_.add_child("text"));
 				default_text_config(curr_item);
 
 				add_text_with_attribute(*curr_item, *removed_part);
 
-			} else if ((img_size.y > 0) && (get_text_size(*curr_item, w_ - img_size.x).y < img_size.y)) {
+			} else if ((img_size.y > 0) && (text_size.y < img_size.y)) {
 				PLAIN_LOG << "no wrap";
 				if (is_image) {
 					(*curr_item)["actions"] = "([set_var('pos_y', pos_y + image_height)])";
@@ -538,28 +545,26 @@ void rich_label::set_label(const t_string& text)
 			}
 
 			// update text size and widget height
-			if (tmp_h > get_text_size(*curr_item, w_ - img_size.x).y) {
+			if (tmp_h > get_text_size(*curr_item, w_ - x_).y) {
 				tmp_h = 0;
 			}
 
-			txt_height_ += get_text_size(*curr_item, w_ - img_size.x).y - tmp_h;
-
-			if (img_size.y < static_cast<int>(txt_height_+prev_txt_height_)) {
-				img_size = point(0,0);
-				y_ = h_;
-				h_ = txt_height_ + prev_txt_height_;
-			}
+			txt_height_ += get_text_size(*curr_item, w_ - x_).y - tmp_h;
 
 			is_image = false;
 		}
 
+
+		// Height Update
+		if (!is_image && !floating && img_size.y > 0) {
+			prev_txt_height_ += img_size.y;
+			img_size = point(0,0);
+		}
+
+		h_ = txt_height_ + prev_txt_height_;
+
 		// reset all variables to zero, otherwise they grow infinitely
 		if (last_entry) {
-			if (is_image) {
-				y_ = h_;
-				h_ += get_image_size(*curr_item).y + 5;
-			}
-		
 			config& break_cfg = text_dom_.add_child("text");
 			default_text_config(&break_cfg);
 			break_cfg["text"] = " ";
@@ -571,6 +576,14 @@ void rich_label::set_label(const t_string& text)
 	// padding, avoids text from getting cut off at the bottom
 } // function ends
 
+void rich_label::start_new_text_block(config* text_cfg, unsigned txt_height_) {
+	prev_txt_height_ += txt_height_ + padding_;
+	txt_height_ = 0;
+
+	text_cfg = &(text_dom_.add_child("text"));
+	default_text_config(text_cfg);
+}
+
 void rich_label::default_text_config(config* txt_ptr, t_string text) {
 	(*txt_ptr)["text"] = text;
 	(*txt_ptr)["font_size"] = font::SIZE_NORMAL;
@@ -580,7 +593,7 @@ void rich_label::default_text_config(config* txt_ptr, t_string text) {
 	(*txt_ptr)["h"] = "(text_height)";
 	// tw -> table width, used for wrapping text inside table cols
 	// ww -> wrap width, used for wrapping around floating image
-	(*txt_ptr)["maximum_width"] = "(width - tw - pos_x - ww)";
+	(*txt_ptr)["maximum_width"] = "(width - pos_x - ww - tw)";
 	(*txt_ptr)["actions"] = "([set_var('pos_y', pos_y+text_height)])";
 }
 
@@ -593,6 +606,7 @@ void rich_label::update_canvas()
 		tmp.set_variable("img_y", wfl::variant(0));
 		tmp.set_variable("tw", wfl::variant(0));
 		tmp.set_variable("ww", wfl::variant(0));
+		tmp.set_variable("padding", wfl::variant(padding_));
 		// Disable ellipsization so that text wrapping can work
 		tmp.set_variable("text_wrap_mode", wfl::variant(PANGO_ELLIPSIZE_NONE));
 		tmp.set_cfg(text_dom_, true);

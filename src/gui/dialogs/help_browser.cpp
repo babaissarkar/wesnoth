@@ -116,78 +116,6 @@ tree_view_node& help_browser::add_topic(const std::string& topic_id, const std::
 	return new_node;
 }
 
-/*
-static std::string format_help_text(const config& cfg)
-{
-	std::stringstream ss;
-	for(auto item : cfg.all_children_range()) {
-		if(item.key == "text") {
-			ss << font::escape_text(item.cfg["text"]);
-		} else if(item.key == "ref") {
-			if(item.cfg["dst"].empty()) {
-				std::stringstream msg;
-				msg << "Ref markup must have dst attribute. Please submit a bug"
-					" report if you have not modified the game files yourself. Erroneous config: " << cfg;
-				throw help::parse_error(msg.str());
-			};
-			// TODO: Get the proper link shade from somewhere
-			ss << font::format_as_link(font::escape_text(item.cfg["text"]), color_t::from_hex_string("ffff00"));
-		} else if(item.key == "img") {
-			if(item.cfg["src"].empty()) {
-				throw help::parse_error("Img markup must have src attribute.");
-			}
-			// For now, just output a placeholder so we know an image is supposed to be there.
-			ss << "[img]" << font::escape_text(item.cfg["src"]) << "[/img]";
-		} else if(item.key == "bold") {
-			if(item.cfg["text"].empty()) {
-				throw help::parse_error("Bold markup must have text attribute.");
-			}
-			ss << "<b>" << font::escape_text(item.cfg["text"]) << "</b>";
-		} else if(item.key == "italic") {
-			if(item.cfg["text"].empty()) {
-				throw help::parse_error("Italic markup must have text attribute.");
-			}
-			ss << "<i>" << font::escape_text(item.cfg["text"]) << "</i>";
-		} else if(item.key == "header") {
-			if(item.cfg["text"].empty()) {
-				throw help::parse_error("Header markup must have text attribute.");
-			}
-			ss << "<big>" << font::escape_text(item.cfg["text"]) << "</big>";
-		} else if(item.key == "jump") {
-			// This appears to be something akin to tab stops.
-			if(item.cfg["amount"].empty() && item.cfg["to"].empty()) {
-				throw help::parse_error("Jump markup must have either a to or an amount attribute.");
-			}
-			ss << '\t';
-		} else if(item.key == "format") {
-			if(item.cfg["text"].empty()) {
-				throw help::parse_error("Header markup must have text attribute.");
-			}
-
-			ss << "<span";
-			if(item.cfg.has_attribute("font_size")) {
-				ss << " size='" << item.cfg["font_size"].to_int(font::SIZE_NORMAL) << "'";
-			}
-
-			if(item.cfg.has_attribute("color")) {
-				ss << " color='" << font::string_to_color(item.cfg["color"]).to_hex_string() << "'";
-			}
-
-			if(item.cfg["bold"]) {
-				ss << " font_weight='bold'";
-			}
-
-			if(item.cfg["italic"]) {
-				ss << " font_style='italic'";
-			}
-
-			ss << '>' << font::escape_text(item.cfg["text"]) << "</span>";
-		}
-	}
-	return ss.str();
-}
-*/
-
 void help_browser::on_topic_select()
 {
 //	multi_page& topic_pages = find_widget<multi_page>(this, "topic_text_pages", false);
@@ -233,7 +161,7 @@ void help_browser::on_topic_select()
 		
 		find_widget<label>(this, "topic_title", false).set_label(topic->title);
 		find_widget<rich_label>(this, "topic_text", false).set_label(topic->text.unparsed_text());
-		PLAIN_LOG << topic->text.unparsed_text();
+//		PLAIN_LOG << topic->text.unparsed_text();
 
 //		parsed_pages_.emplace(topic_id, topic_pages.get_page_count());
 //		topic_pages.add_page(data);
