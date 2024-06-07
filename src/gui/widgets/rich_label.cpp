@@ -270,11 +270,16 @@ size_t rich_label::get_split_location(std::string text, int img_height) {
 		len += utf8::size(font::get_text_renderer().get_lines()[i]);
 	}
 	len += wrap_position.x;
+	// size() and utf::size() can return different values
+	len = len > (text.size()-1) ? text.size()-1 : len;
 
 	// break only at word boundary
 	char c;
 	while((c = text.at(len)) != ' ') {
 		len--;
+		if (len == 0) {
+			break;
+		}
 	}
 
 	return len;

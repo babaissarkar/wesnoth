@@ -128,17 +128,18 @@ void help_browser::show_topic(std::string topic_id)
 
 	if(topic_id[0] == '+') {
 		topic_id.replace(topic_id.begin(), topic_id.begin() + 1, 2, '.');
-	} else {
-		topic_id.erase(topic_id.begin());
 	}
-
-	const help::section& sec = toplevel_;
-
+	
+	if(topic_id[0] == '-') {
+		topic_id.erase(topic_id.begin(), topic_id.begin() + 1);
+	}
+	
 	auto iter = parsed_pages_.find(topic_id);
-//	if(iter == parsed_pages_.end()) {
-		const help::topic* topic = help::find_topic(sec, topic_id);
+	if(iter == parsed_pages_.end()) {
+		const help::topic* topic = help::find_topic(toplevel_, topic_id);
 		if(topic == nullptr) {
-			PLAIN_LOG << "topic not found";
+			PLAIN_LOG << "Help browser tried to show topic with id '" << topic_id
+				  << "' but that topic could not be found." << std::endl;
 			return;
 		}
 
@@ -159,7 +160,7 @@ void help_browser::show_topic(std::string topic_id)
 		//		topic_pages.add_page(data);
 
 		get_window()->invalidate_layout();
-//	}
+	}
 
 	if(!history_.empty()) {
 		history_.erase(std::next(history_pos_), history_.end());
@@ -183,7 +184,6 @@ void help_browser::on_link_click(std::string link)
 
 void help_browser::on_topic_select()
 {
-//	multi_page& topic_pages = find_widget<multi_page>(this, "topic_text_pages", false);
 	tree_view& topic_tree = find_widget<tree_view>(this, "topic_tree", false);
 
 	if(topic_tree.empty()) {
@@ -193,60 +193,7 @@ void help_browser::on_topic_select()
 	tree_view_node* selected = topic_tree.selected_item();
 	assert(selected);
 
-	std::string topic_id = selected->id();
-
-	if(topic_id.empty()) {
-		return;
-	}
-
-	if(topic_id[0] == '+') {
-		topic_id.replace(topic_id.begin(), topic_id.begin() + 1, 2, '.');
-	} else {
-		topic_id.erase(topic_id.begin());
-	}
-
-	const help::section& sec = toplevel_;
-
-	auto iter = parsed_pages_.find(topic_id);
-	if(iter == parsed_pages_.end()) {
-		const help::topic* topic = help::find_topic(sec, topic_id);
-		if(topic == nullptr) {
-			return;
-		}
-
-		widget_data data;
-		widget_item item;
-
-		item["label"] = topic->text.unparsed_text();
-		data.emplace("topic_text", item);
-
-		item.clear();
-		item["label"] = topic->title;
-		data.emplace("topic_title", item);
-		
-		find_widget<label>(this, "topic_title", false).set_label(topic->title);
-		find_widget<rich_label>(this, "topic_text", false).set_label(topic->text.unparsed_text());
-
-//		parsed_pages_.emplace(topic_id, topic_pages.get_page_count());
-//		topic_pages.add_page(data);
-
-		get_window()->invalidate_layout();
-	}
-
-	if(!history_.empty()) {
-		history_.erase(std::next(history_pos_), history_.end());
-	}
-
-	history_.push_back(topic_id);
-	history_pos_ = std::prev(history_.end());
-
-	if(history_pos_ != history_.begin()) {
-		find_widget<button>(this, "back", false).set_visible(widget::visibility::visible);
-	}
-	find_widget<button>(this, "next", false).set_visible(widget::visibility::hidden);
-
-//	const unsigned topic_i = parsed_pages_.at(topic_id);
-//	topic_pages.select_page(topic_i);
+	show_topic(selected->id());
 }
 
 void help_browser::on_history_navigate(bool backwards)
