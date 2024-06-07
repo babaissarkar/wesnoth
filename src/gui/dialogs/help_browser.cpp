@@ -68,10 +68,14 @@ void help_browser::pre_show(window& window)
 	button& back_button = find_widget<button>(&window, "back", false);
 	button& next_button = find_widget<button>(&window, "next", false);
 
+	rich_label& topic_text = find_widget<rich_label>(&window, "topic_text", false);
+
 	next_button.set_visible(widget::visibility::hidden);
 	back_button.set_visible(widget::visibility::hidden);
 	connect_signal_mouse_left_click(back_button, std::bind(&help_browser::on_history_navigate, this, true));
 	connect_signal_mouse_left_click(next_button, std::bind(&help_browser::on_history_navigate, this, false));
+
+	topic_text.register_link_callback(std::bind(&help_browser::on_link_click, this, std::placeholders::_1));
 
 	connect_signal_notify_modified(topic_tree,
 		std::bind(&help_browser::on_topic_select, this));
@@ -114,6 +118,67 @@ tree_view_node& help_browser::add_topic(const std::string& topic_id, const std::
 	new_node.set_id(std::string(expands ? "+" : "-") + topic_id);
 
 	return new_node;
+}
+
+void help_browser::show_topic(std::string topic_id)
+{
+	if(topic_id.empty()) {
+		return;
+	}
+
+	if(topic_id[0] == '+') {
+		topic_id.replace(topic_id.begin(), topic_id.begin() + 1, 2, '.');
+	} else {
+		topic_id.erase(topic_id.begin());
+	}
+
+	const help::section& sec = toplevel_;
+
+	auto iter = parsed_pages_.find(topic_id);
+//	if(iter == parsed_pages_.end()) {
+		const help::topic* topic = help::find_topic(sec, topic_id);
+		if(topic == nullptr) {
+			PLAIN_LOG << "topic not found";
+			return;
+		}
+
+		widget_data data;
+		widget_item item;
+
+		item["label"] = topic->text.unparsed_text();
+		data.emplace("topic_text", item);
+
+		item.clear();
+		item["label"] = topic->title;
+		data.emplace("topic_title", item);
+
+		find_widget<label>(this, "topic_title", false).set_label(topic->title);
+		find_widget<rich_label>(this, "topic_text", false).set_label(topic->text.unparsed_text());
+
+		//		parsed_pages_.emplace(topic_id, topic_pages.get_page_count());
+		//		topic_pages.add_page(data);
+
+		get_window()->invalidate_layout();
+//	}
+
+	if(!history_.empty()) {
+		history_.erase(std::next(history_pos_), history_.end());
+	}
+
+	history_.push_back(topic_id);
+	history_pos_ = std::prev(history_.end());
+
+	if(history_pos_ != history_.begin()) {
+		find_widget<button>(this, "back", false).set_visible(widget::visibility::visible);
+	}
+	find_widget<button>(this, "next", false).set_visible(widget::visibility::hidden);
+
+}
+
+void help_browser::on_link_click(std::string link)
+{
+	PLAIN_LOG << "topic: (" << link << ")";
+	show_topic(link);
 }
 
 void help_browser::on_topic_select()
@@ -161,7 +226,6 @@ void help_browser::on_topic_select()
 		
 		find_widget<label>(this, "topic_title", false).set_label(topic->title);
 		find_widget<rich_label>(this, "topic_text", false).set_label(topic->text.unparsed_text());
-//		PLAIN_LOG << topic->text.unparsed_text();
 
 //		parsed_pages_.emplace(topic_id, topic_pages.get_page_count());
 //		topic_pages.add_page(data);
