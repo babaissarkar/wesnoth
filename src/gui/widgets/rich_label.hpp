@@ -108,6 +108,11 @@ public:
 		can_shrink_ = can_shrink;
 	}
 
+	void set_width(unsigned width)
+	{
+		w_ = width;
+	}
+
 	void set_text_alpha(unsigned short alpha);
 
 	const t_string& get_label() const
@@ -185,7 +190,7 @@ private:
 	std::unique_ptr<image_shape> ishape_;
 
 	/** Width and height of the canvas */
-	unsigned w_, h_, x_, y_;
+	unsigned w_, h_, x_;
 
 	/** Padding */
 	unsigned padding_;
@@ -193,16 +198,16 @@ private:
 	/** Height of current text block */
 	unsigned txt_height_;
 
-	/** Height of all previous text blocks, combined */
-	unsigned prev_txt_height_;
+	/** Height of all previous blocks, combined */
+	unsigned prev_blk_height_;
 
 	/** template for canvas text config */
 	void default_text_config(config* txt_ptr, t_string text = "");
 
-	void add_text_with_attribute(config& text_cfg, std::string text, std::string attr_name = "", std::string extra_data = "");
-	void add_text_with_attributes(config& text_cfg, std::string text, std::vector<std::string> attr_names, std::vector<std::string> extra_data);
-
-	void start_new_text_block(config* text_cfg, unsigned txt_height_);
+	void add_text_with_attribute(config& curr_item, std::string text, std::string attr_name = "", std::string extra_data = "");
+	void add_text_with_attributes(config& curr_item, std::string text, std::vector<std::string> attr_names, std::vector<std::string> extra_data);
+	void add_image(config& curr_item, std::string name, std::string align, bool floating, point& img_size);
+	void add_link(config& curr_item, std::string name, std::string dest, int img_width);
 
 	void append_if_not_empty(config_attribute_value* key, std::string suffix) {
 		if (!key->str().empty()) {
@@ -233,7 +238,7 @@ private:
 		return font::get_text_renderer().get_cursor_position(offset);
 	}
 
-	point calculate_best_size() const
+	point calculate_best_size() const override
 	{
 		return point(w_, h_);
 	}
@@ -252,11 +257,6 @@ private:
 	 * Left click signal handler: checks if we clicked on a hyperlink
 	 */
 	void signal_handler_left_button_click(bool& handled);
-
-	/**
-	 * Right click signal handler: checks if we clicked on a hyperlink, copied to clipboard
-	 */
-	void signal_handler_right_button_click(bool& handled);
 
 	/**
 	 * Mouse motion signal handler: checks if the cursor is on a hyperlink
@@ -302,14 +302,9 @@ struct builder_rich_label : public builder_styled_widget
 
 	virtual std::unique_ptr<widget> build() const override;
 
-	bool wrap;
-
-	unsigned characters_per_line;
-
 	PangoAlignment text_alignment;
-
-	bool can_shrink;
 	bool link_aware;
+	unsigned width;
 };
 
 } // namespace implementation
