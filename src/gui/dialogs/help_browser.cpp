@@ -145,10 +145,6 @@ void help_browser::show_topic(std::string topic_id)
 		widget_data data;
 		widget_item item;
 
-		item["label"] = topic->text.unparsed_text();
-		data.emplace("topic_text", item);
-
-		item.clear();
 		item["label"] = topic->title;
 		data.emplace("topic_title", item);
 
@@ -204,7 +200,7 @@ void help_browser::on_history_navigate(bool backwards)
 	}
 	find_widget<button>(this, "back", false).set_visible(history_pos_ == history_.begin() ? widget::visibility::hidden : widget::visibility::visible);
 	find_widget<button>(this, "next", false).set_visible(history_pos_ == std::prev(history_.end()) ? widget::visibility::hidden : widget::visibility::visible);
-	const unsigned topic_i = parsed_pages_.at(*history_pos_);
+//	const unsigned topic_i = parsed_pages_.at(*history_pos_);
 //	find_widget<multi_page>(this, "topic_text_pages", false).select_page(topic_i);
 }
 

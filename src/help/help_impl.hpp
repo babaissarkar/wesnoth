@@ -109,9 +109,6 @@ public:
 	topic_text& operator=(std::shared_ptr<topic_generator> g);
 
 	const std::vector<std::string>& parsed_text() const;
-	const std::string unparsed_text() const {
-		return unparsed_text_;
-	}
 };
 
 /** A topic contains a title, an id and some text. */
