@@ -121,6 +121,8 @@ public:
 	}
 
 	void set_label(const t_string& text) override;
+	void set_topic(const help::topic* topic);
+	void set_parsed_text(std::vector<std::string> parsed_text);
 
 	void register_link_callback(std::function<void(std::string)> link_handler)
 	{

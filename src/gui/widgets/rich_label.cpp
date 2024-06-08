@@ -285,17 +285,27 @@ size_t rich_label::get_split_location(std::string text, int img_height) {
 	return len;
 }
 
+void rich_label::set_topic(const help::topic* topic)
+{
+	set_parsed_text(topic->text.parsed_text());
+}
+
 void rich_label::set_label(const t_string& text)
+{
+	unparsed_text_ = text;
+	help::topic_text marked_up_text(text);
+	std::vector<std::string> parsed_text = marked_up_text.parsed_text();
+	set_parsed_text(parsed_text);
+}
+
+void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 {
 	// Initialization
 	w_ = (w_ == 0) ? styled_widget::calculate_best_size().x : w_;
 	DBG_GUI_RL << "Width: " << w_;
 	h_ = 0;
-	unparsed_text_ = text;
 	text_dom_.clear();
 	links_.clear();
-	help::topic_text marked_up_text(text);
-	std::vector<std::string> parsed_text = marked_up_text.parsed_text();
 
 	config* curr_item = nullptr;
 	optional_config_impl<config> child;
