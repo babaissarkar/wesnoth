@@ -21,7 +21,7 @@
 #include "gui/auxiliary/find_widget.hpp"
 #include "gui/widgets/button.hpp"
 #include "gui/widgets/image.hpp"
-#include "gui/widgets/multi_page.hpp"
+//#include "gui/widgets/multi_page.hpp"
 #include "gui/widgets/label.hpp"
 #include "gui/widgets/rich_label.hpp"
 #include "gui/widgets/scroll_label.hpp"
@@ -99,7 +99,7 @@ void help_browser::add_topics_for_section(const help::section& parent_section, t
 	}
 
 	for(const help::topic& topic : parent_section.topics) {
-		if(topic.id.compare(0,2,"..") != 0) {
+		if(topic.id.compare(0, 2, "..") != 0) {
 			add_topic(topic.id, topic.title, false, parent_node);
 		}
 	}
@@ -206,7 +206,7 @@ void help_browser::on_history_navigate(bool backwards)
 	find_widget<button>(this, "back", false).set_visible(history_pos_ == history_.begin() ? widget::visibility::hidden : widget::visibility::visible);
 	find_widget<button>(this, "next", false).set_visible(history_pos_ == std::prev(history_.end()) ? widget::visibility::hidden : widget::visibility::visible);
 	const unsigned topic_i = parsed_pages_.at(*history_pos_);
-	find_widget<multi_page>(this, "topic_text_pages", false).select_page(topic_i);
+//	find_widget<multi_page>(this, "topic_text_pages", false).select_page(topic_i);
 }
 
 } // namespace dialogs
