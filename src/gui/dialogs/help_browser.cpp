@@ -119,7 +119,6 @@ tree_view_node& help_browser::add_topic(const std::string& topic_id, const std::
 
 	return new_node;
 }
-
 void help_browser::show_topic(std::string topic_id)
 {
 	if(topic_id.empty()) {
@@ -154,7 +153,7 @@ void help_browser::show_topic(std::string topic_id)
 		data.emplace("topic_title", item);
 
 		find_widget<label>(this, "topic_title", false).set_label(topic->title);
-		find_widget<rich_label>(this, "topic_text", false).set_label(topic->text.unparsed_text());
+		find_widget<rich_label>(this, "topic_text", false).set_topic(topic);
 
 		//		parsed_pages_.emplace(topic_id, topic_pages.get_page_count());
 		//		topic_pages.add_page(data);
