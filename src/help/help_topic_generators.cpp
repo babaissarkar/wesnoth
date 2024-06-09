@@ -135,13 +135,13 @@ std::string terrain_topic_generator::operator()() const {
 
 	if (!type_.icon_image().empty())
 		ss << "<img>src='images/buttons/icon-base-32.png~RC(magenta>" << type_.id()
-			<< ")~BLIT("<< "terrain/" << type_.icon_image() << "_30.png)" << "'</img> ";
+			<< ")~BLIT("<< "terrain/" << type_.icon_image() << "_30.png)" << "'</img>";
 
 	if (!type_.editor_image().empty())
-		ss << "<img>src='" << type_.editor_image() << "'</img> ";
+		ss << "<img>src='" << type_.editor_image() << "'</img>";
 
 	if (!type_.help_topic_text().empty())
-		ss << "\n\n" << type_.help_topic_text().str() << "\n";
+		ss << "\n" << type_.help_topic_text().str() << "\n";
 	else
 		ss << "\n";
 
@@ -294,19 +294,20 @@ std::string unit_topic_generator::operator()() const {
 	const int screen_width = video::game_canvas_size().x;
 
 	ss << _("Level") << " " << type_.level();
-	ss << "\n\n";
-
+	
 	ss << "<img>src='" << male_type.image();
 	ss << "~RC(" << male_type.flag_rgb() << ">red)";
 	if (screen_width >= 1200) ss << "~SCALE_SHARP(200%,200%)";
-	ss << "' box='no'</img> ";
+	ss << "' box='no'</img>";
 
 	if (female_type.image() != male_type.image()) {
 		ss << "<img>src='" << female_type.image();
 		ss << "~RC(" << female_type.flag_rgb() << ">red)";
 		if (screen_width >= 1200) ss << "~SCALE_SHARP(200%,200%)";
-		ss << "' box='no'</img> ";
+		ss << "' box='no'</img>";
 	}
+	
+	ss << "\n ";
 
 	const std::string &male_portrait = male_type.small_profile().empty() ?
 		male_type.big_profile() : male_type.small_profile();
@@ -328,16 +329,14 @@ std::string unit_topic_generator::operator()() const {
 	sz *= video::get_pixel_scale();
 
 	// TODO: figure out why the second checks don't match but the last does
-	if (has_male_portrait) {
-		ss << "<img>src='" << male_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img> ";
-	}
+//	if (has_male_portrait) {
+//		ss << "<img>src='" << male_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img>";
+//	}
 
 
-	if (has_female_portrait) {
-		ss << "<img>src='" << female_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img> ";
-	}
-
-	ss << "\n\n\n";
+//	if (has_female_portrait) {
+//		ss << "<img>src='" << female_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img>";
+//	}
 
 	// Print cross-references to units that this unit advances from/to.
 	// Cross reference to the topics containing information about those units.
@@ -439,7 +438,7 @@ std::string unit_topic_generator::operator()() const {
 	}
 	ss << _("Race: ");
 	ss << make_link(race_name, "..race_" + race_id);
-	ss << "\n\n";
+	ss << "\n";
 
 	// Print the possible traits of the unit, cross-reference them
 	// to their respective topics.
@@ -494,12 +493,12 @@ std::string unit_topic_generator::operator()() const {
 				ss << ": ";
 				print_trait_list(ss, must_have_traits);
 			}
-			ss << "\n\n";
+			ss << "\n";
 		} else {
 			if (line2) {
 				ss << _("Traits") << " (" << (type_.num_traits() - must_have_nameless_traits) << ") : ";
 				print_trait_list(ss, random_traits);
-				ss << "\n\n";
+				ss << "\n";
 			}
 		}
 	}
@@ -563,33 +562,33 @@ std::string unit_topic_generator::operator()() const {
 	// TRANSLATORS: This string is used in the help page of a single unit.  If the translation
 	// uses spaces, use non-breaking spaces as appropriate for the target language to prevent
 	// unpleasant line breaks (issue #3256).
-	ss << _("HP:") << font::nbsp << type_.hitpoints() << jump(30)
+	ss << _("HP:") << font::nbsp << type_.hitpoints() << "  "
 		// TRANSLATORS: This string is used in the help page of a single unit.  If the translation
 		// uses spaces, use non-breaking spaces as appropriate for the target language to prevent
 		// unpleasant line breaks (issue #3256).
-		<< _("Moves:") << font::nbsp << type_.movement() << jump(30);
+		<< _("Moves:") << font::nbsp << type_.movement() << "  ";
 	if (type_.vision() != type_.movement()) {
 		// TRANSLATORS: This string is used in the help page of a single unit.  If the translation
 		// uses spaces, use non-breaking spaces as appropriate for the target language to prevent
 		// unpleasant line breaks (issue #3256).
-		ss << _("Vision:") << font::nbsp << type_.vision() << jump(30);
+		ss << _("Vision:") << font::nbsp << type_.vision() << "  ";
 	}
 	if (type_.jamming() > 0) {
 		// TRANSLATORS: This string is used in the help page of a single unit.  If the translation
 		// uses spaces, use non-breaking spaces as appropriate for the target language to prevent
 		// unpleasant line breaks (issue #3256).
-		ss << _("Jamming:") << font::nbsp << type_.jamming() << jump(30);
+		ss << _("Jamming:") << font::nbsp << type_.jamming() << "  ";
 	}
 	// TRANSLATORS: This string is used in the help page of a single unit.  If the translation
 	// uses spaces, use non-breaking spaces as appropriate for the target language to prevent
 	// unpleasant line breaks (issue #3256).
-	ss << _("Cost:") << font::nbsp << type_.cost() << jump(30)
+	ss << _("Cost:") << font::nbsp << type_.cost() << "  "
 		// TRANSLATORS: This string is used in the help page of a single unit.  If the translation
 		// uses spaces, use non-breaking spaces as appropriate for the target language to prevent
 		// unpleasant line breaks (issue #3256).
 		<< _("Alignment:") << font::nbsp
 		<< make_link(type_.alignment_description(type_.alignment(), type_.genders().front()), "time_of_day")
-		<< jump(30);
+		<< "  ";
 	if (type_.can_advance() || type_.modification_advancements()) {
 		// TRANSLATORS: This string is used in the help page of a single unit.  It uses
 		// non-breaking spaces to prevent unpleasant line breaks (issue #3256).  In the
@@ -600,20 +599,96 @@ std::string unit_topic_generator::operator()() const {
 	// Print the detailed description about the unit.
 	ss << "\n\n" << detailed_description;
 	if(const auto notes = type_.special_notes(); !notes.empty()) {
-		ss << "\n\n" << _("Special Notes:") << '\n';
+		ss << "\n" << _("Special Notes:") << '\n';
 		for(const auto& note : notes) {
 			ss << font::unicode_bullet << " " << note << '\n';
 		}
 	}
+	
+	ss << "<header>Attacks</header>";
+	
+	if (!type_.attacks().empty()) {
+		// Start table
+		ss << "<table col=5/>";
+		
+		// Print headers for the table.
+		ss
+//		<< _("<b>Icon</b>") << "<jump/>"
+		<< _("<b>Name</b>") << "<jump/>"
+		<< _("<b>Strikes</b>") << "<jump/>"
+		<< _("<b>Range</b>") << "<jump/>"
+		<< _("<b>Type</b>") << "<jump/>"
+		<< _("<b>Special</b>") << "<br/>";
+		
+		std::stringstream attack_ss;
+		
+		// Print information about every attack.
+		for(const attack_type& attack : type_.attacks()) {
+			std::string lang_weapon = attack.name();
+			std::string lang_type = string_table["type_" + attack.type()];
+			
+			// Attack icon
+//			attack_ss << "<img>src='" << attack.icon() << "'</img><jump/>";
+			
+			// attack name
+			attack_ss << lang_weapon << "<jump/>";
+			
+			// damage x strikes
+			attack_ss << attack.damage() << font::weapon_numbers_sep << attack.num_attacks()
+				<< " " << attack.accuracy_parry_description() << "<jump/>";
+				
+			// range
+			if (attack.min_range() > 1 || attack.max_range() > 1) {
+				attack_ss << attack.min_range() << "-" << attack.max_range() << ' ';
+			}
+			attack_ss << string_table["range_" + attack.range()] << "<jump/>";
+			
+			// type
+			attack_ss << lang_type << "<jump/>";
+			
+			// special
+			std::vector<std::pair<t_string, t_string>> specials = attack.special_tooltips();
+			if (!specials.empty()) {
+				std::string lang_special = "";
+				const std::size_t specials_size = specials.size();
+				for (std::size_t i = 0; i != specials_size; ++i) {
+					const std::string ref_id = std::string("weaponspecial_")
+						+ specials[i].first.base_str();
+					lang_special = (specials[i].first);
+					attack_ss << make_link(lang_special, ref_id);
+					if (i+1 != specials_size) {
+						attack_ss << ", "; //comma placed before next special
+					}
+				}
+			} else {
+				attack_ss << "none";
+			}
+			attack_ss << "<br/>";
+		}
+		
+		ss << attack_ss.str();
+		ss << "<endtable/>";
+	}
+	
+	// Print the resistance table of the unit.
+	ss << "\n<header>Resistances</header>";
+	
+	// Start table
+	ss << "<table col=2/>";
+	ss << _("<b>Attack Type</b>") << "<jump/>";
+	ss << _("<b>Resistance</b>") << "<br/>";
+	ss << "<endtable/>";
 
+	/*
 	// Padding for range and damage type icons
 	const auto padding = 4; // matches the alignment of the terrain rows
 
 	// Print the different attacks a unit has, if it has any.
 	if (!type_.attacks().empty()) {
 		// Print headers for the table.
-		ss << "\n\n<header>text='" << escape(_("unit help^Attacks"))
-			<< "'</header>\n\n";
+		ss << "\n<header>text='" << escape(_("unit help^Attacks"))
+			<< "'</header>\n";
+			
 		table_spec table;
 
 		std::vector<item> first_row;
@@ -917,11 +992,15 @@ std::string unit_topic_generator::operator()() const {
 
 			table.push_back(row);
 		}
+		*/
 
-		ss << generate_table(table);
-	} else {
-		WRN_HP << "When building unit help topics, the display object was null and we couldn't get the terrain info we need.";
-	}
+//		ss << generate_table(table);
+		
+//	} else {
+//		WRN_HP << "When building unit help topics, the display object was null and we couldn't get the terrain info we need.";
+//	}
+	
+	PLAIN_LOG << ss.str();
 	return ss.str();
 }
 

@@ -165,7 +165,7 @@ void rich_label::add_image(config& curr_item, std::string name, std::string alig
 
 	// Sizing
 	if (floating) {
-		img_size.x = get_image_size(curr_item).x;
+		img_size.x = get_image_size(curr_item).x; // TODO no padding_ here?
 		img_size.y += get_image_size(curr_item).y;
 	} else {
 		img_size.x += get_image_size(curr_item).x + padding_;
@@ -482,10 +482,11 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 						//linebreak
 						x_ = 0;
 						prev_blk_height_ += max_col_height;
-						max_col_height = 0;
-						txt_height_ = 0;
 
 						(*curr_item)["actions"] = boost::str(boost::format("([set_var('pos_x', 0), set_var('pos_y', pos_y + %d + %d), set_var('tw', width - pos_x - %d)])") % max_col_height % padding_ % col_width);
+						
+						max_col_height = 0;
+						txt_height_ = 0;
 
 					}
 
@@ -635,6 +636,8 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 		DBG_GUI_RL << "-----------";
 
 	} // for loop ends
+	
+	PLAIN_LOG << text_dom_.debug();
 	
 	DBG_GUI_RL << "Height: " << h_;
 
