@@ -599,13 +599,15 @@ std::string unit_topic_generator::operator()() const {
 	// Print the detailed description about the unit.
 	ss << "\n\n" << detailed_description;
 	if(const auto notes = type_.special_notes(); !notes.empty()) {
-		ss << "\n" << _("Special Notes:") << '\n';
+		ss << "\n" << _("<b>Special Notes:</b>") << '\n';
 		for(const auto& note : notes) {
-			ss << font::unicode_bullet << " " << note << '\n';
+			ss << font::unicode_bullet << " <i>" << note << "</i>" << '\n';
 		}
 	}
 	
-	ss << "<header>Attacks</header>";
+	
+	// Print the attacks table
+//	ss << "\n<header>Attacks</header>";
 	
 	if (!type_.attacks().empty()) {
 		// Start table
@@ -638,12 +640,16 @@ std::string unit_topic_generator::operator()() const {
 				<< " " << attack.accuracy_parry_description() << "<jump/>";
 				
 			// range
+			const std::string range_icon = "icons/profiles/" + attack.range() + "_attack.png~SCALE_INTO(16,16)";
+			attack_ss << "<img src='" << range_icon << "'/>";
 			if (attack.min_range() > 1 || attack.max_range() > 1) {
 				attack_ss << attack.min_range() << "-" << attack.max_range() << ' ';
 			}
 			attack_ss << string_table["range_" + attack.range()] << "<jump/>";
 			
 			// type
+			const std::string type_icon = "icons/profiles/" + attack.type() + ".png~SCALE_INTO(16,16)";
+			attack_ss << "<img src='" << type_icon << "'/>";
 			attack_ss << lang_type << "<jump/>";
 			
 			// special
@@ -670,14 +676,54 @@ std::string unit_topic_generator::operator()() const {
 		ss << "<endtable/>";
 	}
 	
+	// Generate the movement type of the unit, with resistance, defense, movement, jamming and vision data updated according to any 'musthave' traits which always apply
+	movetype movement_type = type_.movement_type();
+	config::const_child_itors traits = type_.possible_traits();
+	if (!traits.empty() && type_.num_traits() > 0) {
+		for (const config & t : traits) {
+			if (t["availability"].str() == "musthave") {
+				for (const config & effect : t.child_range("effect")) {
+					if (!effect.has_child("filter") // If this is musthave but has a unit filter, it might not always apply, so don't apply it in the help.
+							&& movetype::effects.find(effect["apply_to"].str()) != movetype::effects.end()) {
+						movement_type.merge(effect, effect["replace"].to_bool());
+					}
+				}
+			}
+		}
+	}
+	
 	// Print the resistance table of the unit.
-	ss << "\n<header>Resistances</header>";
+//	ss << "\n<header>Resistances</header>";
+
+//	ss << "Resistances in various terrains\n";
 	
 	// Start table
-	ss << "<table col=2/>";
-	ss << _("<b>Attack Type</b>") << "<jump/>";
-	ss << _("<b>Resistance</b>") << "<br/>";
-	ss << "<endtable/>";
+//	ss << "<table col=2/>";
+//	ss << _("<b>Attack Type</b>") << "<jump/>";
+//	ss << _("<b>Resistance</b>") << "<br/>";
+//	
+//	utils::string_map_res dam_tab = movement_type.damage_table();
+//	for(std::pair<std::string, std::string> dam_it : dam_tab) {
+//		int resistance = 100;
+//		try {
+//			resistance -= std::stoi(dam_it.second);
+//		} catch(std::invalid_argument&) {}
+//		std::string resist = std::to_string(resistance) + '%';
+//		const std::size_t pos = resist.find('-');
+//		if (pos != std::string::npos) {
+//			resist.replace(pos, 1, font::unicode_minus);
+//		}
+//		std::string color = unit_helper::resistance_color(resistance);
+//		const std::string lang_type = string_table["type_" + dam_it.first];
+//		const std::string type_icon = "icons/profiles/" + dam_it.first + ".png~SCALE_INTO(16,16)";
+//		ss << "<img src='" << type_icon << "'/>";
+//		ss << lang_type << "<jump/>";
+//		std::stringstream str;
+//		str << "<format>color=\"" << color << "\" text='"<< resist << "'</format>";
+//		ss << str.str() << "<br/>";
+//	}
+//	
+//	ss << "<endtable/>";
 
 	/*
 	// Padding for range and damage type icons
