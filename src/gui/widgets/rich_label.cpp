@@ -454,8 +454,8 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 //					(*curr_item)["actions"] = boost::str(boost::format("([set_var('pos_x', 0), set_var('pos_y', pos_y + if(ih > text_height, ih, text_height)), set_var('tw', width - pos_x - %d), set_var('ih', 0)])") % col_width);
 					(*curr_item)["actions"] = boost::str(boost::format("([set_var('pos_x', 0), set_var('pos_y', pos_y + %s), set_var('tw', width - pos_x - %d)])") % (is_image ? "image_height" : "text_height") % col_width);
 					x_ = 0;
-//					prev_blk_height_ += std::max(img_size.y, get_text_size(*curr_item, w_ - img_size.x).y);
-//					txt_height_ = 0;
+					prev_blk_height_ += std::max(img_size.y, get_text_size(*curr_item, w_ - img_size.x).y);
+					txt_height_ = 0;
 
 					new_text_block = true;
 
@@ -487,15 +487,15 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 				} else if (cfg.optional_child("break") || cfg.optional_child("br")) {
 
 					if (in_table) {
-						PLAIN_LOG << "pth: " << prev_blk_height_;
-						
-						PLAIN_LOG << "is: " << img_size.y;
+//						PLAIN_LOG << "pth: " << prev_blk_height_;
+//						
+//						PLAIN_LOG << "is: " << img_size.y;
 
 						max_col_height = std::max(max_col_height, txt_height_);
 						max_col_height = std::max(max_col_height, static_cast<unsigned>(img_size.y));
 						
-						PLAIN_LOG << "th: " << txt_height_;
-						PLAIN_LOG << "mch: " << max_col_height;
+//						PLAIN_LOG << "th: " << txt_height_;
+//						PLAIN_LOG << "mch: " << max_col_height;
 
 						//linebreak
 						col_idx = 0;
@@ -538,7 +538,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 					in_table = false;
 				}
 
-				if (needs_size_update) {
+//				if (needs_size_update) {
 					int ah = get_text_size(*curr_item, w_ - x_).y;
 					// update text size and widget height
 					if (tmp_h > ah) {
@@ -546,7 +546,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 					}
 
 					txt_height_ += ah - tmp_h;
-				}
+//				}
 			}
 
 		} else if (!line.empty()) {
@@ -650,6 +650,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 				h_ = img_size.y;
 			}
 			h_ += font::get_line_spacing_factor() * font::get_max_height(font::SIZE_NORMAL);
+			h_ += 200;
 
 			config& break_cfg = text_dom_.add_child("text");
 			default_text_config(&break_cfg);

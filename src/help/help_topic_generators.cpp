@@ -607,7 +607,7 @@ std::string unit_topic_generator::operator()() const {
 	
 	
 	// Print the attacks table
-//	ss << "\n<header>Attacks</header>";
+	ss << "\n<span weight='bold' font_family='Serif' size='22'>Attacks</span>";
 	
 	if (!type_.attacks().empty()) {
 		// Start table
@@ -693,37 +693,211 @@ std::string unit_topic_generator::operator()() const {
 	}
 	
 	// Print the resistance table of the unit.
-//	ss << "\n<header>Resistances</header>";
-
-//	ss << "Resistances in various terrains\n";
+	ss << "\n<span weight='bold' font_family='Serif' size='22'>Resistances</span>";
 	
-	// Start table
-//	ss << "<table col=2/>";
-//	ss << _("<b>Attack Type</b>") << "<jump/>";
-//	ss << _("<b>Resistance</b>") << "<br/>";
-//	
-//	utils::string_map_res dam_tab = movement_type.damage_table();
-//	for(std::pair<std::string, std::string> dam_it : dam_tab) {
-//		int resistance = 100;
-//		try {
-//			resistance -= std::stoi(dam_it.second);
-//		} catch(std::invalid_argument&) {}
-//		std::string resist = std::to_string(resistance) + '%';
-//		const std::size_t pos = resist.find('-');
-//		if (pos != std::string::npos) {
-//			resist.replace(pos, 1, font::unicode_minus);
-//		}
-//		std::string color = unit_helper::resistance_color(resistance);
-//		const std::string lang_type = string_table["type_" + dam_it.first];
-//		const std::string type_icon = "icons/profiles/" + dam_it.first + ".png~SCALE_INTO(16,16)";
-//		ss << "<img src='" << type_icon << "'/>";
-//		ss << lang_type << "<jump/>";
-//		std::stringstream str;
-//		str << "<format>color=\"" << color << "\" text='"<< resist << "'</format>";
-//		ss << str.str() << "<br/>";
-//	}
-//	
-//	ss << "<endtable/>";
+//	 Start table
+	ss << "<table col=2/>";
+	ss << _("<b>Attack Type</b>") << "<jump/>";
+	ss << _("<b>Resistance</b>") << "<br/>";
+	
+	utils::string_map_res dam_tab = movement_type.damage_table();
+	for(std::pair<std::string, std::string> dam_it : dam_tab) {
+		int resistance = 100;
+		try {
+			resistance -= std::stoi(dam_it.second);
+		} catch(std::invalid_argument&) {}
+		std::string resist = std::to_string(resistance) + '%';
+		const std::size_t pos = resist.find('-');
+		if (pos != std::string::npos) {
+			resist.replace(pos, 1, font::unicode_minus);
+		}
+		std::string color = unit_helper::resistance_color(resistance);
+		const std::string lang_type = string_table["type_" + dam_it.first];
+		const std::string type_icon = "icons/profiles/" + dam_it.first + ".png~SCALE_INTO(16,16)";
+		ss << "<img src='" << type_icon << "'/>";
+		ss << lang_type << "<jump/>";
+		std::stringstream str;
+		str << "<format>color=\"" << color << "\" text='"<< resist << "'</format>";
+		ss << str.str() << "<br/>";
+	}
+	
+	ss << "<endtable/>";
+	
+	if (std::shared_ptr<terrain_type_data> tdata = load_terrain_types_data()) {
+		// Print the terrain modifier table of the unit.
+		ss << "\n<span weight='bold' font_family='Serif' size='22'>Terrain Modifiers</span>";
+		ss << "<table col=3/>";
+		ss << _("<b>Terrain</b>") << "<jump/>";
+		ss << _("<b>Defense</b>") << "<jump/>";
+		ss << _("<b>Movement Cost</b>") << "<br/>";
+//		ss << _("<b>Defense Cap</b>") << "<jump/>";
+//		ss << _("<b>Vision Cost</b>") << "<jump/>";
+//		ss << _("<b>Jamming Cost</b>") << "<br/>";
+		
+		std::set<terrain_movement_info> terrain_moves;
+
+		for (t_translation::terrain_code terrain : preferences::encountered_terrains()) {
+			if (terrain == t_translation::FOGGED || terrain == t_translation::VOID_TERRAIN || t_translation::terrain_matches(terrain, t_translation::ALL_OFF_MAP)) {
+				continue;
+			}
+			const terrain_type& info = tdata->get_terrain_info(terrain);
+			const int moves = movement_type.movement_cost(terrain);
+			const bool cannot_move = moves > type_.movement();
+			if (cannot_move && info.hide_if_impassable()) {
+				continue;
+			}
+
+			if (info.is_indivisible() && info.is_nonnull()) {
+				terrain_movement_info movement_info =
+				{
+					info.name(),
+					info.id(),
+					100 - movement_type.defense_modifier(terrain),
+					moves,
+					movement_type.vision_cost(terrain),
+					movement_type.jamming_cost(terrain),
+					movement_type.get_defense().capped(terrain)
+				};
+
+				terrain_moves.insert(movement_info);
+			}
+		}
+		
+		for(const terrain_movement_info &m : terrain_moves)
+		{
+//			std::vector<item> row;
+
+			bool high_res = false;
+			const std::string tc_base = high_res ? "images/buttons/icon-base-32.png" : "images/buttons/icon-base-16.png";
+			const std::string terrain_image = "icons/terrain/terrain_type_" + m.id + (high_res ? "_30.png" : ".png");
+
+			const std::string final_image = tc_base + "~RC(magenta>" + m.id + ")~BLIT(" + terrain_image + ")";
+
+//			row.emplace_back("<img>src='" + final_image + "'</img> " +
+//					make_link(m.name, "..terrain_" + m.id),
+//				font::pango_line_width(m.name, normal_font_size) + (high_res ? 32 : 16) );
+			ss << "<img>src='" + final_image + "'</img> " + make_link(m.name, "..terrain_" + m.id) << "<jump/>";
+
+			//defense  -  range: +10 % .. +70 %
+			// passing false to select the more saturated red-to-green scale
+			std::string color = game_config::red_to_green(m.defense, false).to_hex_string();
+
+			std::stringstream str;
+			std::stringstream str_unformatted;
+			str << "<format>color='" << color << "' text='"<< m.defense << "%'</format>";
+			str_unformatted << m.defense << "%";
+//			row.emplace_back(str.str(), font::pango_line_width(str_unformatted.str(), normal_font_size));
+			ss << str.str() << "<jump/>";
+
+			//movement  -  range: 1 .. 5, movetype::UNREACHABLE=impassable
+			str.str(clear_stringstream);
+			str_unformatted.str(clear_stringstream);
+			const bool cannot_move = m.movement_cost > type_.movement();        // cannot move in this terrain
+			double movement_red_to_green = 100.0 - 25.0 * m.movement_cost;
+
+			// passing true to select the less saturated red-to-green scale
+			std::string movement_color = game_config::red_to_green(movement_red_to_green, true).to_hex_string();
+			str << "<format>color='" << movement_color << "' text='";
+			// A 5 MP margin; if the movement costs go above
+			// the unit's max moves + 5, we replace it with dashes.
+			if(cannot_move && (m.movement_cost > type_.movement() + 5)) {
+				str_unformatted << font::unicode_figure_dash;
+			} else if(cannot_move) {
+				str_unformatted << "(" << m.movement_cost << ")";
+			} else {
+				str_unformatted << m.movement_cost;
+			}
+			if(m.movement_cost != 0) {
+				const int movement_hexes_per_turn = type_.movement() / m.movement_cost;
+				str_unformatted << " ";
+				for(int i = 0; i < movement_hexes_per_turn; ++i) {
+					// Unicode horizontal black hexagon and Unicode zero width space (to allow a line break)
+					str_unformatted << "\u2b23\u200b";
+				}
+			}
+			str << str_unformatted.str() << "'</format>";
+//			row.emplace_back(str.str(), font::pango_line_width(str_unformatted.str(), normal_font_size));
+			ss << str.str() << "<br/>";
+
+			//defense cap
+//			if (has_terrain_defense_caps) {
+//				str.str(clear_stringstream);
+//				str_unformatted.str(clear_stringstream);
+//				if (m.defense_cap) {
+//					str << "<format>color='"<< color <<"' text='" << m.defense << "%'</format>";
+//					str_unformatted << m.defense << "%";
+//				} else {
+//					str << "<format>color=white text='" << font::unicode_figure_dash << "'</format>";
+//					str_unformatted << font::unicode_figure_dash;
+//				}
+//				row.emplace_back(str.str(), font::pango_line_width(str_unformatted.str(), normal_font_size));
+//			}
+
+			//vision
+//			if (has_vision) {
+//				str.str(clear_stringstream);
+//				str_unformatted.str(clear_stringstream);
+//				const bool cannot_view = m.vision_cost > type_.vision();        // cannot view in this terrain
+//				double vision_red_to_green = 100.0 - 25.0 * m.vision_cost;
+
+//				// passing true to select the less saturated red-to-green scale
+//				std::string vision_color = game_config::red_to_green(vision_red_to_green, true).to_hex_string();
+//				str << "<format>color='" << vision_color << "' text='";
+//				// A 5 MP margin; if the vision costs go above
+//				// the unit's vision + 5, we replace it with dashes.
+//				if(cannot_view && (m.vision_cost > type_.vision() + 5)) {
+//					str_unformatted << font::unicode_figure_dash;
+//				} else if(cannot_view) {
+//					str_unformatted << "(" << m.vision_cost << ")";
+//				} else {
+//					str_unformatted << m.vision_cost;
+//				}
+//				if(m.vision_cost != 0) {
+//					const int vision_hexes_per_turn = type_.vision() / m.vision_cost;
+//					str_unformatted << " ";
+//					for(int i = 0; i < vision_hexes_per_turn; ++i) {
+//						// Unicode horizontal black hexagon and Unicode zero width space (to allow a line break)
+//						str_unformatted << "\u2b23\u200b";
+//					}
+//				}
+//				str << str_unformatted.str() << "'</format>";
+//				row.emplace_back(str.str(), font::pango_line_width(str_unformatted.str(), normal_font_size));
+//			}
+
+//			//jamming
+//			if (has_jamming) {
+//				str.str(clear_stringstream);
+//				str_unformatted.str(clear_stringstream);
+//				const bool cannot_jam = m.jamming_cost > type_.jamming();       // cannot jam in this terrain
+//				double jamming_red_to_green = 100.0 - 25.0 * m.jamming_cost;
+
+//				// passing true to select the less saturated red-to-green scale
+//				std::string jamming_color = game_config::red_to_green(jamming_red_to_green, true).to_hex_string();
+//				str << "<format>color='" << jamming_color << "' text='";
+//				// A 5 MP margin; if the jamming costs go above
+//				// the unit's jamming + 5, we replace it with dashes.
+//				if (cannot_jam && m.jamming_cost > type_.jamming() + 5) {
+//					str_unformatted << font::unicode_figure_dash;
+//				} else if(cannot_jam) {
+//					str_unformatted << "(" << m.jamming_cost << ")";
+//				} else {
+//					str_unformatted << m.jamming_cost;
+//				}
+//				if(m.jamming_cost != 0) {
+//					const int jamming_hexes_per_turn = type_.jamming() / m.jamming_cost;
+//					str_unformatted << " ";
+//					for(int i = 0; i < jamming_hexes_per_turn; ++i) {
+//						// Unicode horizontal black hexagon and Unicode zero width space (to allow a line break)
+//						str_unformatted << "\u2b23\u200b";
+//					}
+//				}
+//				str << str_unformatted.str() << "'</format>";
+//				row.emplace_back(str.str(), font::pango_line_width(str_unformatted.str(), normal_font_size));
+//			}
+		}
+		
+		ss << "<endtable/>";
+	}
 
 	/*
 	// Padding for range and damage type icons
