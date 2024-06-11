@@ -59,7 +59,7 @@ rich_label::rich_label(const implementation::builder_rich_label& builder)
 	, w_(0)
 	, h_(0)
 	, x_(0)
-	, padding_(5)
+	, padding_(4)
 	, txt_height_(0)
 	, prev_blk_height_(0)
 {
@@ -400,17 +400,17 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 
 					// Header starts in a new line
 
-					append_if_not_empty(&((*curr_item)["text"]), "\n");
 					append_if_not_empty(&((*curr_item)["attr_name"]), ",");
 					append_if_not_empty(&((*curr_item)["attr_start"]), ",");
 					append_if_not_empty(&((*curr_item)["attr_end"]), ",");
 					append_if_not_empty(&((*curr_item)["attr_data"]), ",");
 
 					std::stringstream header_text;
-					header_text << child["text"].str() + "\n";
-					std::vector<std::string> attrs = {"color", "size"};
+					header_text << child["text"].str();
+					std::vector<std::string> attrs = {"face", "color", "size"};
 					std::vector<std::string> attr_data;
-					attr_data.push_back(font::TITLE_COLOR.to_hex_string().substr(1));
+					attr_data.push_back("serif");
+					attr_data.push_back(font::string_to_color("white").to_hex_string().substr(1));
 					attr_data.push_back(std::to_string(font::SIZE_TITLE));
 
 					add_text_with_attributes((*curr_item), header_text.str(), attrs, attr_data);
@@ -454,7 +454,9 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 //					(*curr_item)["actions"] = boost::str(boost::format("([set_var('pos_x', 0), set_var('pos_y', pos_y + if(ih > text_height, ih, text_height)), set_var('tw', width - pos_x - %d), set_var('ih', 0)])") % col_width);
 					(*curr_item)["actions"] = boost::str(boost::format("([set_var('pos_x', 0), set_var('pos_y', pos_y + %s), set_var('tw', width - pos_x - %d)])") % (is_image ? "image_height" : "text_height") % col_width);
 					x_ = 0;
-					prev_blk_height_ += std::max(img_size.y, get_text_size(*curr_item, w_ - img_size.x).y);
+//					PLAIN_LOG << "pbh: " << prev_blk_height_ << ", " << txt_height_;
+					//prev_blk_height_ += std::max(img_size.y, get_text_size(*curr_item, w_ - img_size.x).y);
+					prev_blk_height_ += txt_height_;
 					txt_height_ = 0;
 
 					new_text_block = true;
@@ -466,7 +468,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 
 					if (col_width > 0) {
 					
-						PLAIN_LOG << "pth: " << prev_blk_height_;
+//						PLAIN_LOG << "pth: " << prev_blk_height_;
 
 						max_col_height = std::max(max_col_height, txt_height_);
 						max_col_height = std::max(max_col_height, static_cast<unsigned>(img_size.y));
@@ -500,7 +502,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 						//linebreak
 						col_idx = 0;
 						x_ = 0;
-						prev_blk_height_ += max_col_height;
+						prev_blk_height_ += max_col_height + padding_;
 						
 						// FIXME y not calculated correctly for second row of second table
 						(*curr_item)["actions"] = boost::str(boost::format("([set_var('pos_x', 0), set_var('pos_y', pos_y + %d + %d), set_var('tw', width - pos_x - %d)])") % max_col_height % padding_ % col_width);
@@ -650,7 +652,6 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 				h_ = img_size.y;
 			}
 			h_ += font::get_line_spacing_factor() * font::get_max_height(font::SIZE_NORMAL);
-			h_ += 200;
 
 			config& break_cfg = text_dom_.add_child("text");
 			default_text_config(&break_cfg);
@@ -662,7 +663,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 
 	} // for loop ends
 	
-	PLAIN_LOG << text_dom_.debug();
+//	PLAIN_LOG << text_dom_.debug();
 	
 	DBG_GUI_RL << "Height: " << h_;
 
