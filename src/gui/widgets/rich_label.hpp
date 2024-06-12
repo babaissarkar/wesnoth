@@ -208,7 +208,7 @@ private:
 
 	void add_text_with_attribute(config& curr_item, std::string text, std::string attr_name = "", std::string extra_data = "");
 	void add_text_with_attributes(config& curr_item, std::string text, std::vector<std::string> attr_names, std::vector<std::string> extra_data);
-	void add_image(config& curr_item, std::string name, std::string align, bool floating, point& img_size);
+	void add_image(config& curr_item, std::string name, std::string align, bool floating, bool in_table, point& img_size);
 	void add_link(config& curr_item, std::string name, std::string dest, int img_width);
 
 	void append_if_not_empty(config_attribute_value* key, std::string suffix) {

@@ -180,7 +180,7 @@ std::string terrain_topic_generator::operator()() const {
 	}
 
 	if(!special_notes.empty()) {
-		ss << "\n" << _("Special Notes:") << '\n';
+		ss << "\n\n" << _("<header>Special Notes</header>") << "\n";
 		for(const auto& note : special_notes) {
 			ss << font::unicode_bullet << " " << note << '\n';
 		}
@@ -477,17 +477,18 @@ std::string unit_topic_generator::operator()() const {
 			ss << traits_label;
 			if (line2) {
 				std::stringstream must_have_count;
-				must_have_count << " (" << must_have_traits.size() << ") : ";
+				must_have_count << "\n (" << must_have_traits.size() << ") : ";
 				std::stringstream random_count;
 				random_count << " (" << (type_.num_traits() - must_have_traits.size() - must_have_nameless_traits) << ") : ";
 
-				int second_line_whitespace = font::pango_line_width(traits_label+must_have_count.str(), normal_font_size)
-					- font::pango_line_width(random_count.str(), normal_font_size);
+//				int second_line_whitespace = font::pango_line_width(traits_label+must_have_count.str(), normal_font_size)
+//					- font::pango_line_width(random_count.str(), normal_font_size);
 				// This ensures that the second line is justified so that the ':' characters are aligned.
 
 				ss << must_have_count.str();
 				print_trait_list(ss, must_have_traits);
-				ss << "\n" << jump(second_line_whitespace) << random_count.str();
+//				ss << "\n" << jump(second_line_whitespace) << random_count.str();
+				ss << "\n" << random_count.str();
 				print_trait_list(ss, random_traits);
 			} else {
 				ss << ": ";
@@ -599,7 +600,7 @@ std::string unit_topic_generator::operator()() const {
 	// Print the detailed description about the unit.
 	ss << "\n\n" << detailed_description;
 	if(const auto notes = type_.special_notes(); !notes.empty()) {
-		ss << "\n" << _("<b>Special Notes:</b>") << '\n';
+		ss << "\n\n" << _("<header>Special Notes</header>") << "\n";
 		for(const auto& note : notes) {
 			ss << font::unicode_bullet << " <i>" << note << "</i>" << '\n';
 		}
@@ -611,11 +612,11 @@ std::string unit_topic_generator::operator()() const {
 	
 	if (!type_.attacks().empty()) {
 		// Start table
-		ss << "<table col=5/>";
+		ss << "<table col=6/>";
 		
 		// Print headers for the table.
 		ss
-//		<< _("<b>Icon</b>") << "<jump/>"
+		<< " " << "<jump/>"
 		<< _("<b>Name</b>") << "<jump/>"
 		<< _("<b>Strikes</b>") << "<jump/>"
 		<< _("<b>Range</b>") << "<jump/>"
@@ -630,7 +631,7 @@ std::string unit_topic_generator::operator()() const {
 			std::string lang_type = string_table["type_" + attack.type()];
 			
 			// Attack icon
-//			attack_ss << "<img>src='" << attack.icon() << "'</img><jump/>";
+			attack_ss << "<img>src='" << attack.icon() << "'</img> <jump/>";
 			
 			// attack name
 			attack_ss << lang_weapon << "<jump/>";
