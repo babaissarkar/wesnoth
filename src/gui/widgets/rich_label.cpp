@@ -573,12 +573,8 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 				// first part of the text
 				t_string* removed_part = new t_string((*curr_item)["text"].str().substr(len+1));
 				(*curr_item)["text"] = (*curr_item)["text"].str().substr(0, len);
-				(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('ww', 0), set_var('pos_y', pos_y + text_height)])";
+				(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('ww', 0), set_var('pos_y', pos_y + text_height + padding)])";
 
-				// New text block
-				x_ = 0;
-				floating = false;
-				
 				// Height update
 				int ah = get_text_size(*curr_item, w_ - (x_ == 0 ? float_size.x : x_)).y;
 				if (tmp_h > ah) {
@@ -586,14 +582,18 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 				}
 				prev_blk_height_ += ah - tmp_h + txt_height_ + padding_;
 				txt_height_ = 0;
-
+				
+				// New text block
+				x_ = 0;
+				floating = false;
 				// rest of the text
 				curr_item = &(text_dom_.add_child("text"));
 				default_text_config(curr_item);
-				tmp_h = get_text_size(*curr_item, w_ - (x_ == 0 ? float_size.x : x_)).y;
+				tmp_h = get_text_size(*curr_item, w_ - x_).y;
 				add_text_with_attribute(*curr_item, *removed_part);
 
 			} else if ((float_size.y > 0) && (text_size.y < float_size.y)) {
+				// text height less than floating image's height, don't split
 				DBG_GUI_RL << "no wrap";
 //				if (is_image) {
 //					(*curr_item)["actions"] = "([set_var('pos_y', pos_y + image_height)])";
@@ -602,17 +602,17 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 //				}
 			}
 			
-		// Incremental height update for text
+			if (!floating) {
+				float_size = point(0,0);
+			}
+			
+			// Incremental height update for text
 			int ah = get_text_size(*curr_item, w_ - (x_ == 0 ? float_size.x : x_)).y;
 			if (tmp_h > ah) {
 				tmp_h = 0;
 			}
 
 			txt_height_ += ah - tmp_h;
-			
-			if (!floating) {
-				float_size = point(0,0);
-			}
 
 			is_image = false;
 		}
@@ -641,7 +641,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 			if (static_cast<unsigned>(float_size.y) > h_) {
 				h_ = float_size.y;
 			}
-			h_ += font::get_line_spacing_factor() * font::get_max_height(font::SIZE_NORMAL);
+//			h_ += font::get_line_spacing_factor() * font::get_max_height(font::SIZE_NORMAL);
 
 			config& break_cfg = text_dom_.add_child("text");
 			default_text_config(&break_cfg);
