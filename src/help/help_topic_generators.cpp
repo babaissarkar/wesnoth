@@ -295,20 +295,10 @@ std::string unit_topic_generator::operator()() const {
 
 	ss << _("Level") << " " << type_.level();
 	
-	ss << "<img>src='" << male_type.image();
-	ss << "~RC(" << male_type.flag_rgb() << ">red)";
-	if (screen_width >= 1200) ss << "~SCALE_SHARP(200%,200%)";
-	ss << "' box='no'</img>";
-
-	if (female_type.image() != male_type.image()) {
-		ss << "<img>src='" << female_type.image();
-		ss << "~RC(" << female_type.flag_rgb() << ">red)";
-		if (screen_width >= 1200) ss << "~SCALE_SHARP(200%,200%)";
-		ss << "' box='no'</img>";
-	}
+	#define PORTRAIT yes
+	#ifdef PORTRAIT
 	
-	ss << "\n ";
-
+	// Portraitsa
 	const std::string &male_portrait = male_type.small_profile().empty() ?
 		male_type.big_profile() : male_type.small_profile();
 	const std::string &female_portrait = female_type.small_profile().empty() ?
@@ -329,14 +319,33 @@ std::string unit_topic_generator::operator()() const {
 	sz *= video::get_pixel_scale();
 
 	// TODO: figure out why the second checks don't match but the last does
-//	if (has_male_portrait) {
-//		ss << "<img>src='" << male_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img>";
-//	}
+	if (has_male_portrait) {
+		ss << "<img>src='" << male_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img>";
+	}
 
 
-//	if (has_female_portrait) {
-//		ss << "<img>src='" << female_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img>";
-//	}
+	if (has_female_portrait) {
+		ss << "<img>src='" << female_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img>";
+	}
+	
+	#else
+	
+	// Unit Images
+	ss << "<img>src='" << male_type.image();
+	ss << "~RC(" << male_type.flag_rgb() << ">red)";
+	if (screen_width >= 1200) ss << "~SCALE_SHARP(200%,200%)";
+	ss << "' box='no'</img>";
+
+	if (female_type.image() != male_type.image()) {
+		ss << "<img>src='" << female_type.image();
+		ss << "~RC(" << female_type.flag_rgb() << ">red)";
+		if (screen_width >= 1200) ss << "~SCALE_SHARP(200%,200%)";
+		ss << "' box='no'</img>";
+	}
+	
+	ss << "\n";
+	
+	#endif
 
 	// Print cross-references to units that this unit advances from/to.
 	// Cross reference to the topics containing information about those units.
