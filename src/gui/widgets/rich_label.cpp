@@ -201,19 +201,19 @@ void rich_label::add_image(config& curr_item, std::string name, std::string alig
 void rich_label::add_link(config& curr_item, std::string name, std::string dest, int img_width) {
 	// TODO algorithm needs to be text_alignment independent
 
-	PLAIN_LOG << "add_link, x=" << x_ << " width=" << img_width;
+	DBG_GUI_RL << "add_link, x=" << x_ << " width=" << img_width;
 
 	setup_text_renderer(curr_item, w_ - x_ - img_width);
 	point t_start = get_xy_from_offset(utf8::size(curr_item["text"].str()));
 
-	PLAIN_LOG << "link text start:" << t_start;
+	DBG_GUI_RL << "link text start:" << t_start;
 
 	std::string link_text = name.empty() ? dest : name;
 	add_text_with_attribute(curr_item, link_text, "color", link_color_.to_hex_string().substr(1));
 
 	setup_text_renderer(curr_item, w_ - x_ - img_width);
 	point t_end = get_xy_from_offset(utf8::size(curr_item["text"].str()));
-	PLAIN_LOG << "link text end:" << t_end;
+	DBG_GUI_RL << "link text end:" << t_end;
 
 	point link_start(x_ + t_start.x, prev_blk_height_ + t_start.y);
 	t_end.y += font::get_max_height(font::SIZE_NORMAL);
@@ -231,7 +231,7 @@ void rich_label::add_link(config& curr_item, std::string name, std::string dest,
 		};
 		links_.push_back(std::pair(link_rect, dest));
 
-		PLAIN_LOG << "added link at rect: " << link_rect;
+		DBG_GUI_RL << "added link at rect: " << link_rect;
 
 	} else {
 		//link straddles two lines, break into two rects
@@ -256,8 +256,8 @@ void rich_label::add_link(config& curr_item, std::string name, std::string dest,
 		links_.push_back(std::pair(link_rect, dest));
 		links_.push_back(std::pair(link_rect2, dest));
 
-		PLAIN_LOG << "added link at rect 1: " << link_rect;
-		PLAIN_LOG << "added link at rect 2: " << link_rect2;
+		DBG_GUI_RL << "added link at rect 1: " << link_rect;
+		DBG_GUI_RL << "added link at rect 2: " << link_rect2;
 	}
 }
 
@@ -653,7 +653,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 
 	} // for loop ends
 	
-//	PLAIN_LOG << text_dom_.debug();
+//	DBG_GUI_RL << text_dom_.debug();
 	
 	DBG_GUI_RL << "Height: " << h_;
 
@@ -748,15 +748,15 @@ void rich_label::signal_handler_left_button_click(bool& handled)
 	mouse.x -= get_x();
 	mouse.y -= get_y();
 
-	PLAIN_LOG << "(mouse)" << mouse.x << "," << mouse.y;
+	DBG_GUI_RL << "(mouse)" << mouse.x << "," << mouse.y;
 	DBG_GUI_RL << "link count :" << links_.size();
 
 	for (const auto& entry : links_) {
-		PLAIN_LOG << "link [" << entry.first.x << "," << entry.first.y << ","
+		DBG_GUI_RL << "link [" << entry.first.x << "," << entry.first.y << ","
 		<< entry.first.x + entry.first.w << "," << entry.first.y + entry.first.h  << "]";
 
 		if (entry.first.contains(mouse)) {
-			PLAIN_LOG << "Clicked link! dst = " << entry.second;
+			DBG_GUI_RL << "Clicked link! dst = " << entry.second;
 			if (link_handler_) {
 				link_handler_(entry.second);
 			} else {

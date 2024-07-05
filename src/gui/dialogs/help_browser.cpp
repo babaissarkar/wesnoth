@@ -21,7 +21,6 @@
 #include "gui/auxiliary/find_widget.hpp"
 #include "gui/widgets/button.hpp"
 #include "gui/widgets/image.hpp"
-//#include "gui/widgets/multi_page.hpp"
 #include "gui/widgets/label.hpp"
 #include "gui/widgets/rich_label.hpp"
 #include "gui/widgets/scroll_label.hpp"
@@ -52,6 +51,8 @@ help_browser::help_browser(const help::section& toplevel, const std::string& ini
 	: modal_dialog(window_id())
 	, initial_topic_(initial.empty() ? help::default_show_topic : initial)
 	, toplevel_(toplevel)
+	, history_()
+	, history_pos_(0)
 {
 	if(initial_topic_.compare(0, 2, "..") == 0) {
 		initial_topic_.replace(0, 2, "+");
@@ -70,15 +71,14 @@ void help_browser::pre_show(window& window)
 
 	rich_label& topic_text = find_widget<rich_label>(&window, "topic_text", false);
 
-	next_button.set_visible(widget::visibility::hidden);
-	back_button.set_visible(widget::visibility::hidden);
+	next_button.set_active(false);
+	back_button.set_active(false);
 	connect_signal_mouse_left_click(back_button, std::bind(&help_browser::on_history_navigate, this, true));
 	connect_signal_mouse_left_click(next_button, std::bind(&help_browser::on_history_navigate, this, false));
 
 	topic_text.register_link_callback(std::bind(&help_browser::on_link_click, this, std::placeholders::_1));
 
-	connect_signal_notify_modified(topic_tree,
-		std::bind(&help_browser::on_topic_select, this));
+	connect_signal_notify_modified(topic_tree, std::bind(&help_browser::on_topic_select, this));
 
 	window.keyboard_capture(&topic_tree);
 
@@ -119,7 +119,7 @@ tree_view_node& help_browser::add_topic(const std::string& topic_id, const std::
 
 	return new_node;
 }
-void help_browser::show_topic(std::string topic_id)
+void help_browser::show_topic(std::string topic_id, bool add_to_history)
 {
 	if(topic_id.empty()) {
 		return;
@@ -136,7 +136,7 @@ void help_browser::show_topic(std::string topic_id)
 	auto iter = parsed_pages_.find(topic_id);
 	if(iter == parsed_pages_.end()) {
 		const help::topic* topic = help::find_topic(toplevel_, topic_id);
-		if(topic == nullptr) {
+		if(!topic) {
 			PLAIN_LOG << "Help browser tried to show topic with id '" << topic_id
 				  << "' but that topic could not be found." << std::endl;
 			return;
@@ -151,24 +151,22 @@ void help_browser::show_topic(std::string topic_id)
 		find_widget<label>(this, "topic_title", false).set_label(topic->title);
 		find_widget<rich_label>(this, "topic_text", false).set_topic(topic);
 
-		//		parsed_pages_.emplace(topic_id, topic_pages.get_page_count());
-		//		topic_pages.add_page(data);
-
 		get_window()->invalidate_layout();
 	}
 
-	if(!history_.empty()) {
-		history_.erase(std::next(history_pos_), history_.end());
+	if (add_to_history) {
+		// history pos is 0 initially, so it's already at first entry
+		// no need increment first time
+		if (!history_.empty()) {
+			history_pos_++;
+		}
+		history_.push_back(topic_id);
+
+		find_widget<button>(this, "back", false).set_active(history_pos_ != 0);
+
+		PLAIN_LOG << "history pos: " << history_pos_;
+		PLAIN_LOG << " history: " << topic_id;
 	}
-
-	history_.push_back(topic_id);
-	history_pos_ = std::prev(history_.end());
-
-	if(history_pos_ != history_.begin()) {
-		find_widget<button>(this, "back", false).set_visible(widget::visibility::visible);
-	}
-	find_widget<button>(this, "next", false).set_visible(widget::visibility::hidden);
-
 }
 
 void help_browser::on_link_click(std::string link)
@@ -198,8 +196,13 @@ void help_browser::on_history_navigate(bool backwards)
 	} else {
 		history_pos_++;
 	}
-	find_widget<button>(this, "back", false).set_visible(history_pos_ == history_.begin() ? widget::visibility::hidden : widget::visibility::visible);
-	find_widget<button>(this, "next", false).set_visible(history_pos_ == std::prev(history_.end()) ? widget::visibility::hidden : widget::visibility::visible);
+	find_widget<button>(this, "back", false).set_active(!history_.empty() && history_pos_ != 0);
+	find_widget<button>(this, "next", false).set_active(!history_.empty() && history_pos_ != (history_.size()-1));
+
+	PLAIN_LOG << "history pos: " << history_pos_;
+	const std::string topic_id = history_.at(history_pos_);
+	PLAIN_LOG << " history: " << topic_id;
+	show_topic(topic_id, false);
 //	const unsigned topic_i = parsed_pages_.at(*history_pos_);
 //	find_widget<multi_page>(this, "topic_text_pages", false).select_page(topic_i);
 }
