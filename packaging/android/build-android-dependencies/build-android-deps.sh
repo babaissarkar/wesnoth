@@ -21,17 +21,17 @@ https://downloads.xiph.org/releases/ogg/libogg-1.3.5.tar.xz
 https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz
 https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.6.3/SDL2_mixer-2.6.3.tar.gz
 https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.tar.bz2
-https://www.openssl.org/source/openssl-3.1.0.tar.gz
-https://curl.se/download/curl-8.1.1.tar.xz
+#https://www.openssl.org/source/openssl-3.1.0.tar.gz
+#https://curl.se/download/curl-8.1.1.tar.xz
 )
 PACKAGES=()
 
-./setup-toolchains.py
+#python3 setup-toolchains.py
 
 ORIGIN=`pwd`
 
-mkdir -p /tmp/android-build/src
-pushd /tmp/android-build/src
+#mkdir -p /home/ssarkar/wesnoth-android/android-build/src
+pushd /home/ssarkar/wesnoth-android/android-build/src
 for url in ${SOURCES[@]}
 do
 	wget -nc $url
@@ -71,13 +71,13 @@ do
 done
 popd
 
-for prefix in /tmp/android-prefix/*
+for prefix in /home/ssarkar/wesnoth-android/android-prefix/*
 do
 	abi=`basename $prefix`
-	rm -rf /tmp/android-build/$abi
+	rm -rf /home/ssarkar/wesnoth-android/android-build/$abi
 
-	. /tmp/android-prefix/$abi/android.env
-	export PKG_CONFIG_PATH=/tmp/android-prefix/$abi/lib/pkgconfig
+	. /home/ssarkar/wesnoth-android/android-prefix/$abi/android.env
+	export PKG_CONFIG_PATH=/home/ssarkar/wesnoth-android/android-prefix/$abi/lib/pkgconfig
 
 	for package in ${PACKAGES[@]}
 	do
@@ -97,13 +97,13 @@ do
 
 		host_arg="--host=$HOST"
 
-		src_dir=/tmp/android-build/src/$package
-		build_dir=/tmp/android-build/$abi/$package
+		src_dir=/home/ssarkar/wesnoth-android/android-build/src/$package
+		build_dir=/home/ssarkar/wesnoth-android/android-build/$abi/$package
 		mkdir -p $build_dir
 		if [ -f $src_dir/configure ]
 		then
 			pushd $build_dir
-			$src_dir/configure $host_arg --prefix=/tmp/android-prefix/$abi $extra_flags
+			$src_dir/configure $host_arg --prefix=/home/ssarkar/wesnoth-android/android-prefix/$abi $extra_flags
 			make -j`nproc`
 			make install
 			popd
@@ -116,7 +116,7 @@ do
 			then
 				make clean
 			fi
-			./Configure --prefix=/tmp/android-prefix/$abi $extra_flags android-$ANDROID_ARCH -D__ANDROID_API__=$API
+			./Configure --prefix=/home/ssarkar/wesnoth-android/android-prefix/$abi $extra_flags android-$ANDROID_ARCH -D__ANDROID_API__=$API
 			make -j`nproc`
 			make install
 			popd
@@ -124,7 +124,7 @@ do
 		fi
 		if [ -f $src_dir/meson.build ]
 		then
-			meson setup --cross-file /tmp/android-prefix/$abi/android.ini $build_dir $src_dir -Dprefix=/tmp/android-prefix/$abi $extra_flags
+			meson setup --cross-file /home/ssarkar/wesnoth-android/android-prefix/$abi/android.ini $build_dir $src_dir -Dprefix=/home/ssarkar/wesnoth-android/android-prefix/$abi $extra_flags
 			ninja -C $build_dir
 			ninja -C $build_dir install
 			continue
@@ -145,7 +145,7 @@ do
 				BCABI="sysv"
 				BOOSTARCH="x86"
 			fi
-			./b2 --user-config=/tmp/android-prefix/$abi/android.jam --prefix=/tmp/android-prefix/$abi target-os=android architecture=$BOOSTARCH address-model=$BITNESS abi=$BCABI binary-format=elf install $extra_flags
+			./b2 --user-config=/home/ssarkar/wesnoth-android/android-prefix/$abi/android.jam --prefix=/home/ssarkar/wesnoth-android/android-prefix/$abi target-os=android architecture=$BOOSTARCH address-model=$BITNESS abi=$BCABI binary-format=elf install $extra_flags
 			popd
 			continue
 		fi
@@ -153,17 +153,17 @@ do
 		then
 			pushd $src_dir
 			make clean
-			make install CC="$CC -fPIC" AR="$AR" RANLIB="$RANLIB" PREFIX=/tmp/android-prefix/$abi
+			make install CC="$CC -fPIC" AR="$AR" RANLIB="$RANLIB" PREFIX=/home/ssarkar/wesnoth-android/android-prefix/$abi
 			popd
 			continue
 		fi
 	done
 done
 
-cd /tmp/android-build/src/SDL2-ndk-build
+cd /home/ssarkar/wesnoth-android/android-build/src/SDL2-ndk-build
 $NDK/ndk-build
 for lib in libs/*/*.so
 do
 	instdir=$(basename $(dirname $lib))
-	cp $lib /tmp/android-prefix/$instdir/lib/
+	cp $lib /home/ssarkar/wesnoth-android/android-prefix/$instdir/lib/
 done
