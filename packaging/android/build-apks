@@ -2,20 +2,21 @@
 
 REPO=`pwd`/../..
 
-rm -rf /tmp/wesnoth-aab-base
+rm -rf /home/ssarkar/wesnoth-android/wesnoth-aab-base
 
-for arch in "x86_64" "armeabi-v7a" "arm64-v8a" "x86"
+#for arch in "x86_64" "armeabi-v7a" "arm64-v8a" "x86"
+for arch in "armeabi-v7a"
 do
-	mkdir -p /tmp/wesnoth-$arch
-	pushd /tmp/wesnoth-$arch
-		scons -j`nproc` -Y $REPO prefix=/tmp/android-prefix/$arch host=android-$arch ndkdir=/opt/android-sdk-update-manager/ndk/23.1.7779620 android_home=/opt/android-sdk-update-manager/ apk
+	mkdir -p /home/ssarkar/wesnoth-android/wesnoth-$arch
+	pushd /home/ssarkar/wesnoth-android/wesnoth-$arch
+		scons -j`nproc` -Y $REPO prefix=/home/ssarkar/wesnoth-android/android-prefix/$arch host=android-$arch ndkdir=/home/ssarkar/Android/android-ndk-r26d extra_flags_config=-lm autorevision=false android_api=23 android_home=/home/ssarkar/Android/Sdk/ apk
 	popd
-	mkdir -p /tmp/wesnoth-aab-base
-	pushd /tmp/wesnoth-aab-base
-		unzip -n /tmp/wesnoth-$arch/packaging/android/wesnoth-debug.apk
+	mkdir -p /home/ssarkar/wesnoth-android/wesnoth-aab-base
+	pushd /home/ssarkar/wesnoth-android/wesnoth-aab-base
+		unzip -n /home/ssarkar/wesnoth-android/wesnoth-$arch/packaging/android/wesnoth-debug.apk
 	popd
 done
-pushd /tmp/wesnoth-aab-base
+pushd /home/ssarkar/wesnoth-android/wesnoth-aab-base
 	mkdir manifest
 	mv AndroidManifest.xml manifest/
 	mkdir dex
@@ -24,7 +25,7 @@ pushd /tmp/wesnoth-aab-base
 popd
 wget -nc https://github.com/google/bundletool/releases/download/1.16.0/bundletool-all-1.16.0.jar
 BUNDLETOOL=bundletool-all-1.16.0.jar
-rm wesnoth-debug.aab
-java -jar $BUNDLETOOL build-bundle --modules=/tmp/wesnoth-aab-base/base.zip --output=wesnoth-debug.aab
-rm wesnoth-debug.apks
-java -jar $BUNDLETOOL build-apks --bundle=wesnoth-debug.aab --output=wesnoth-debug.apks
+rm -f wesnoth-debug.aab
+java -jar $BUNDLETOOL build-bundle --modules=/home/ssarkar/wesnoth-android/wesnoth-aab-base/base.zip --output=wesnoth-debug.aab
+rm -f wesnoth-debug.apks
+java -jar $BUNDLETOOL build-apks --mode=universal --bundle=wesnoth-debug.aab --output=wesnoth-debug.apks
