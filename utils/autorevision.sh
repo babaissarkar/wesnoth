@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright (c) 2012 - 2018 dak180 and contributors. See
 # https://opensource.org/licenses/mit-license.php or the included
