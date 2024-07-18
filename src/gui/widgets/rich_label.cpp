@@ -302,6 +302,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 	// Initialization
 	w_ = (w_ == 0) ? styled_widget::calculate_best_size().x : w_;
 	DBG_GUI_RL << "Width: " << w_;
+	x_ = 0;
 	h_ = 0;
 	text_dom_.clear();
 	links_.clear();
