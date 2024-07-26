@@ -143,7 +143,7 @@ void rich_label::add_text_with_attributes(config& curr_item, std::string text, s
 	}
 }
 
-void rich_label::add_image(config& curr_item, std::string name, std::string align, bool floating, point& img_size, point& float_size) {
+void rich_label::add_image(config& curr_item, std::string name, std::string align, bool has_prev_image, bool floating, point& img_size, point& float_size) {
 	curr_item["name"] = name;
 
 	if (align.empty()) {
@@ -159,7 +159,7 @@ void rich_label::add_image(config& curr_item, std::string name, std::string alig
 		// left aligned images are default for now
 		curr_item["x"] = floating ? "(img_x)" : "(pos_x)";
 	}
-	curr_item["y"] = floating ? "(img_y + pos_y)" : "(pos_y)";
+	curr_item["y"] = (has_prev_image && floating) ? "(img_y + pos_y)" : "(pos_y)";
 	curr_item["h"] = "(image_height)";
 	curr_item["w"] = "(image_width)";
 
@@ -345,7 +345,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 				floating = child["float"].to_bool();
 
 				curr_item = &(text_dom_.add_child("image"));
-				add_image(*curr_item, name, align, floating, img_size, float_size);
+				add_image(*curr_item, name, align, is_image, floating, img_size, float_size);
 
 				DBG_GUI_RL << "image: src=" << name << ", size=" << get_image_size(*curr_item);
 
@@ -659,7 +659,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 
 	} // for loop ends
 
-//	DBG_GUI_RL << text_dom_.debug();
+	PLAIN_LOG << text_dom_.debug();
 
 	DBG_GUI_RL << "Height: " << h_;
 
@@ -678,7 +678,7 @@ void rich_label::default_text_config(config* txt_ptr, t_string text) {
 		// tw -> table width, used for wrapping text inside table cols
 		// ww -> wrap width, used for wrapping around floating image
 		(*txt_ptr)["maximum_width"] = "(width - pos_x - ww - tw)";
-		(*txt_ptr)["actions"] = "([set_var('pos_y', pos_y+text_height)])";
+		(*txt_ptr)["actions"] = "([set_var('pos_y', pos_y + text_height)])";
 	}
 }
 
