@@ -567,11 +567,12 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 
 			(*curr_item)["text"] = (*curr_item)["text"].str() + line;
 
-			point text_size;
-			text_size.x = get_text_size(*curr_item, w_ - (x_ == 0 ? float_size.x : x_)).x - x_;
-			text_size.y = get_text_size(*curr_item, w_ - (x_ == 0 ? float_size.x : x_)).y;
+			point text_size = get_text_size(*curr_item, w_ - (x_ == 0 ? float_size.x : x_));
+			text_size.x -= x_;
+			PLAIN_LOG << "floating: " << floating;
+			PLAIN_LOG << "TY: " << text_size.y << ", FY: " << float_size.y;
 
-			if ( floating && (float_size.y > 0) && (text_size.y > float_size.y) ) {
+			if (floating && (float_size.y > 0) && (text_size.y > float_size.y)) {
 				DBG_GUI_RL << "wrap start";
 
 				size_t len = get_split_location((*curr_item)["text"].str(), float_size.y);
