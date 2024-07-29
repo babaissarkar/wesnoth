@@ -295,10 +295,7 @@ std::string unit_topic_generator::operator()() const {
 
 	ss << _("Level") << " " << type_.level();
 	
-	#define PORTRAIT yes
-	#ifdef PORTRAIT
-	
-	// Portraitsa
+	// Portraits
 	const std::string &male_portrait = male_type.small_profile().empty() ?
 		male_type.big_profile() : male_type.small_profile();
 	const std::string &female_portrait = female_type.small_profile().empty() ?
@@ -323,12 +320,9 @@ std::string unit_topic_generator::operator()() const {
 		ss << "<img>src='" << male_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img>";
 	}
 
-
 	if (has_female_portrait) {
 		ss << "<img>src='" << female_portrait << "~FL(horiz)~SCALE_INTO(" << sz << ',' << sz << ")' box='no' align='right' float='yes'</img>";
 	}
-	
-	#else
 	
 	// Unit Images
 	ss << "<img>src='" << male_type.image();
@@ -345,7 +339,7 @@ std::string unit_topic_generator::operator()() const {
 	
 	ss << "\n";
 	
-	#endif
+//	#endif
 
 	// Print cross-references to units that this unit advances from/to.
 	// Cross reference to the topics containing information about those units.
@@ -437,7 +431,6 @@ std::string unit_topic_generator::operator()() const {
 
 		ss << make_link(var_name, ref_id);
 	}
-	ss << "\n"; //added even if empty, to avoid shifting
 
 	// Print the race of the unit, cross-reference it to the respective topic.
 	const std::string race_id = type_.race_id();
@@ -608,13 +601,13 @@ std::string unit_topic_generator::operator()() const {
 
 	// Print the detailed description about the unit.
 	ss << "\n\n" << detailed_description;
+
 	if(const auto notes = type_.special_notes(); !notes.empty()) {
 		ss << "\n\n" << _("<header>Special Notes</header>") << "\n";
 		for(const auto& note : notes) {
 			ss << font::unicode_bullet << " <i>" << note << "</i>" << '\n';
 		}
 	}
-	
 	
 	// Print the attacks table
 	ss << "\n<header>Attacks</header>";
@@ -1230,7 +1223,8 @@ std::string unit_topic_generator::operator()() const {
 //		WRN_HP << "When building unit help topics, the display object was null and we couldn't get the terrain info we need.";
 //	}
 	
-	PLAIN_LOG << ss.str();
+//	PLAIN_LOG << ss.str();
+
 	return ss.str();
 }
 
