@@ -56,7 +56,7 @@ struct help_manager {
  *@pre game_config_manager has been initialised
  */
 std::unique_ptr<help_manager> ensure_cache_lifecycle();
-	
+
 struct section;
 
 void init_help();

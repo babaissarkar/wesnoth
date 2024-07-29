@@ -83,7 +83,7 @@ class topic_text
 	mutable std::string unparsed_text_;
 	mutable std::vector< std::string > parsed_text_;
 	mutable std::shared_ptr<topic_generator> generator_;
-	
+
 public:
 	topic_text() = default;
 	~topic_text() = default;

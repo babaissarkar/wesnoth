@@ -128,11 +128,11 @@ void help_browser::show_topic(std::string topic_id, bool add_to_history)
 	if(topic_id[0] == '+') {
 		topic_id.replace(topic_id.begin(), topic_id.begin() + 1, 2, '.');
 	}
-	
+
 	if(topic_id[0] == '-') {
 		topic_id.erase(topic_id.begin(), topic_id.begin() + 1);
 	}
-	
+
 	auto iter = parsed_pages_.find(topic_id);
 	if(iter == parsed_pages_.end()) {
 		const help::topic* topic = help::find_topic(toplevel_, topic_id);
