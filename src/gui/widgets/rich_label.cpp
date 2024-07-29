@@ -177,7 +177,7 @@ void rich_label::add_image(config& curr_item, std::string name, std::string alig
 			float_size.y -= curr_img_size.y + padding_;
 		}
 	}
-	PLAIN_LOG << "IS: " << img_size << ", " << "FS: " << float_size;
+//	PLAIN_LOG << "IS: " << img_size << ", " << "FS: " << float_size;
 
 	std::stringstream actions;
 	actions << "([";
@@ -321,8 +321,6 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 	bool is_image = false;
 	bool is_float = false;
 	bool wrap_mode = false;
-	bool new_text_block = false;
-//	bool needs_size_update = true;
 	point img_size;
 	point float_size;
 	unsigned col_width = 0;
@@ -662,14 +660,14 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 			config& break_cfg = text_dom_.add_child("text");
 			default_text_config(&break_cfg);
 			break_cfg["text"] = " ";
-			break_cfg["actions"] = "([set_var('pos_x', 0), set_var('pos_y', 0), set_var('img_x', 0), set_var('img_y', 0)])";
+			break_cfg["actions"] = "([set_var('pos_x', 0), set_var('pos_y', 0), set_var('img_x', 0), set_var('img_y', 0), set_var('ww', 0), set_var('tw', 0)])";
 		}
 
 		DBG_GUI_RL << "-----------";
 
 	} // for loop ends
 
-	DBG_GUI_RL << text_dom_.debug();
+//	DBG_GUI_RL << text_dom_.debug();
 
 	DBG_GUI_RL << "Height: " << h_;
 
