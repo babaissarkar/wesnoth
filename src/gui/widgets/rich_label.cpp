@@ -177,7 +177,6 @@ void rich_label::add_image(config& curr_item, std::string name, std::string alig
 			float_size.y -= curr_img_size.y + padding_;
 		}
 	}
-//	PLAIN_LOG << "IS: " << img_size << ", " << "FS: " << float_size;
 
 	std::stringstream actions;
 	actions << "([";
@@ -207,14 +206,14 @@ void rich_label::add_image(config& curr_item, std::string name, std::string alig
 void rich_label::add_link(config& curr_item, std::string name, std::string dest, int img_width) {
 	// TODO algorithm needs to be text_alignment independent
 
-	DBG_GUI_RL << "add_link, x=" << x_ << " width=" << img_width;
+	PLAIN_LOG << "add_link, x=" << x_ << " width=" << img_width;
 
 	point t_start, t_end;
 
 	setup_text_renderer(curr_item, w_ - x_ - img_width);
 	t_start.x = x_ + get_xy_from_offset(utf8::size(curr_item["text"].str())).x;
 	t_start.y = prev_blk_height_ + txt_height_ - font::get_max_height(font::SIZE_NORMAL);
-	DBG_GUI_RL << "link text start:" << t_start;
+	PLAIN_LOG << "link text start:" << t_start;
 
 	std::string link_text = name.empty() ? dest : name;
 	add_text_with_attribute(curr_item, link_text, "color", link_color_.to_hex_string().substr(1));
@@ -222,9 +221,9 @@ void rich_label::add_link(config& curr_item, std::string name, std::string dest,
 	setup_text_renderer(curr_item, w_ - x_ - img_width);
 	t_end.x = x_ + get_xy_from_offset(utf8::size(curr_item["text"].str())).x;
 	t_end.y = prev_blk_height_ + txt_height_;
-	DBG_GUI_RL << "link text end:" << t_end;
+	PLAIN_LOG << "link text end:" << t_end;
 
-	DBG_GUI_RL << "prev_blk_height_: " << prev_blk_height_;
+	PLAIN_LOG << "prev_blk_height_: " << prev_blk_height_;
 
 	// TODO link after right aligned images
 
@@ -239,7 +238,7 @@ void rich_label::add_link(config& curr_item, std::string name, std::string dest,
 		};
 		links_.push_back(std::pair(link_rect, dest));
 
-		DBG_GUI_RL << "added link at rect: " << link_rect;
+		PLAIN_LOG << "added link at rect: " << link_rect;
 
 	} else {
 		//link straddles two lines, break into two rects
@@ -264,8 +263,8 @@ void rich_label::add_link(config& curr_item, std::string name, std::string dest,
 		links_.push_back(std::pair(link_rect, dest));
 		links_.push_back(std::pair(link_rect2, dest));
 
-		DBG_GUI_RL << "added link at rect 1: " << link_rect;
-		DBG_GUI_RL << "added link at rect 2: " << link_rect2;
+		PLAIN_LOG << "added link at rect 1: " << link_rect;
+		PLAIN_LOG << "added link at rect 2: " << link_rect2;
 	}
 }
 
@@ -321,6 +320,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 	bool is_image = false;
 	bool is_float = false;
 	bool wrap_mode = false;
+	bool new_text_block = false;
 	point img_size;
 	point float_size;
 	unsigned col_width = 0;
@@ -350,7 +350,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 					wrap_mode = true;
 				} else {
 					// is current img floating
-					if(is_float) {
+					if(is_curr_float) {
 						wrap_mode = true;
 					}
 				}
@@ -559,10 +559,8 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 					x_ = 0;
 					(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('pos_y', pos_y + image_height + padding)])";
 					line = line.substr(1, line.size());
-//					needs_size_update = true;
 				} else {
 					prev_blk_height_ -= img_size.y + padding_;
-//					needs_size_update = false;
 				}
 			}
 
@@ -598,11 +596,12 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 				(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('ww', 0), set_var('pos_y', pos_y + text_height + padding)])";
 
 				// Height update
-				int ah = get_text_size(*curr_item, w_ - (x_ == 0 ? float_size.x : x_)).y;
+				int ah = get_text_size(*curr_item, w_ - float_size.x).y;
 				if (tmp_h > ah) {
 					tmp_h = 0;
 				}
 				prev_blk_height_ += ah - tmp_h + padding_;
+				PLAIN_LOG << "wrap: " << prev_blk_height_ << "," << txt_height_;
 				txt_height_ = 0;
 
 				// New text block
