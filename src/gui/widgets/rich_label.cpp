@@ -206,12 +206,13 @@ void rich_label::add_image(config& curr_item, std::string name, std::string alig
 void rich_label::add_link(config& curr_item, std::string name, std::string dest, int img_width) {
 	// TODO algorithm needs to be text_alignment independent
 
-	PLAIN_LOG << "add_link, x=" << x_ << " width=" << img_width;
+	PLAIN_LOG << "add_link: " << name << "->" << dest;
+	PLAIN_LOG << "x=" << x_ << " width=" << img_width;
 
 	point t_start, t_end;
 
 	setup_text_renderer(curr_item, w_ - x_ - img_width);
-	t_start.x = x_ + get_xy_from_offset(utf8::size(curr_item["text"].str())).x;
+	t_start.x = x_ + get_xy_from_offset(curr_item["text"].str().size()).x;
 	t_start.y = prev_blk_height_ + txt_height_ - font::get_max_height(font::SIZE_NORMAL);
 	PLAIN_LOG << "link text start:" << t_start;
 
@@ -219,7 +220,7 @@ void rich_label::add_link(config& curr_item, std::string name, std::string dest,
 	add_text_with_attribute(curr_item, link_text, "color", link_color_.to_hex_string().substr(1));
 
 	setup_text_renderer(curr_item, w_ - x_ - img_width);
-	t_end.x = x_ + get_xy_from_offset(utf8::size(curr_item["text"].str())).x;
+	t_end.x = x_ + get_xy_from_offset(curr_item["text"].str().size()).x;
 	t_end.y = prev_blk_height_ + txt_height_;
 	PLAIN_LOG << "link text end:" << t_end;
 
@@ -579,6 +580,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 			(*curr_item)["font_size"] = font::SIZE_NORMAL;
 
 			int tmp_h = get_text_size(*curr_item, w_ - (x_ == 0 ? float_size.x : x_)).y;
+			PLAIN_LOG << "float(1): " << tmp_h;
 
 			(*curr_item)["text"] = (*curr_item)["text"].str() + line;
 
@@ -593,14 +595,16 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 				// first part of the text
 				t_string* removed_part = new t_string((*curr_item)["text"].str().substr(len+1));
 				(*curr_item)["text"] = (*curr_item)["text"].str().substr(0, len);
-				(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('ww', 0), set_var('pos_y', pos_y + text_height + padding)])";
+				(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('ww', 0), set_var('pos_y', pos_y + text_height + " + std::to_string(0.3*font::get_max_height(font::SIZE_NORMAL)) + ")])";
 
 				// Height update
-				int ah = get_text_size(*curr_item, w_ - float_size.x).y;
+				int ah = get_text_size(*curr_item, w_ - float_size.x).y; // no x_?
 				if (tmp_h > ah) {
 					tmp_h = 0;
 				}
-				prev_blk_height_ += ah - tmp_h + padding_;
+				PLAIN_LOG << "float(2): " << ah;
+				txt_height_ += ah - tmp_h;
+				prev_blk_height_ += txt_height_ - font::get_max_height(font::SIZE_NORMAL) + padding_;
 				PLAIN_LOG << "wrap: " << prev_blk_height_ << "," << txt_height_;
 				txt_height_ = 0;
 
