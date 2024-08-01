@@ -1435,7 +1435,7 @@ std::string convert_to_wml(std::string& element_name, const std::string& content
 	// Find the different attributes.
 	// Attributes are just separated by spaces or newlines.
 	// Attributes that contain spaces must be in single quotes.
-	// No equal key forces that token to be considered as plain text
+	// No equal char forces that token to be considered as plain text
 	// and it gets attached to the default 'text' key.
 	for (std::size_t pos = 0; pos < contents.size(); ++pos) {
 		const char c = contents[pos];
@@ -1483,17 +1483,21 @@ std::string convert_to_wml(std::string& element_name, const std::string& content
 	ss.str("");
 	// Create the WML.
 	ss << "[" << element_name << "]\n";
-	//for (std::vector<std::string>::const_iterator it = attributes.begin();
-	//	 it != attributes.end(); ++it) {
 	for (auto& elem : attributes) {
-		boost::algorithm::trim(elem);
-		ss << elem << "\n";
+		// quote RHS values if not quoted already
+		std::vector<std::string> attr_parts = utils::split(elem, '=', utils::STRIP_SPACES);
+		if (attr_parts[1].c_str()[0] != '"') {
+			std::string attr_new = attr_parts[0] + "=\"" + attr_parts[1] + "\"";
+			ss << attr_new << "\n";
+		} else {
+			ss << elem << "\n";
+		}
 	}
 
 	std::string text = buff.str();
 	boost::algorithm::trim(text);
 	if (!text.empty()) {
-		ss << "text=\"" << text << "\"\n";
+		ss << "text=" << text << "\n";
 	}
 	ss << "[/" << element_name << "]";
 
