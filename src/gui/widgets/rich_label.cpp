@@ -212,7 +212,7 @@ void rich_label::add_link(config& curr_item, std::string name, std::string dest,
 	point t_start, t_end;
 
 	setup_text_renderer(curr_item, w_ - x_ - img_width);
-	t_start.x = x_ + get_xy_from_offset(curr_item["text"].str().size()).x;
+	t_start.x = x_ + get_xy_from_offset(utf8::size(curr_item["text"].str())).x;
 	t_start.y = prev_blk_height_ + txt_height_ - font::get_max_height(font::SIZE_NORMAL);
 	PLAIN_LOG << "link text start:" << t_start;
 
@@ -220,7 +220,7 @@ void rich_label::add_link(config& curr_item, std::string name, std::string dest,
 	add_text_with_attribute(curr_item, link_text, "color", link_color_.to_hex_string().substr(1));
 
 	setup_text_renderer(curr_item, w_ - x_ - img_width);
-	t_end.x = x_ + get_xy_from_offset(curr_item["text"].str().size()).x;
+	t_end.x = x_ + get_xy_from_offset(utf8::size(curr_item["text"].str())).x;
 	t_end.y = prev_blk_height_ + txt_height_;
 	PLAIN_LOG << "link text end:" << t_end;
 
@@ -390,7 +390,7 @@ void rich_label::set_parsed_text(std::vector<std::string> parsed_text)
 
 				if ((child = cfg.optional_child("ref"))) {
 
-					add_link(*curr_item, child["text"], child["dst"], float_size.x); //img size used
+					add_link(*curr_item, child["text"], child["dst"], float_size.x);
 					is_image = false;
 
 					DBG_GUI_RL << "ref: dst=" << child["dst"];
