@@ -62,17 +62,16 @@ color_t string_to_color(const std::string &cmp_str)
 	if (cmp_str == "white") {
 		return font::BIGMAP_COLOR;
 	}
+
 	if (cmp_str == "blue") {
 		return font::BLUE_COLOR;
 	}
 
-	if (cmp_str.at(0) == '#' && cmp_str.size() == 7) {
-		// #rrggbb color, pango format.
-		return color_t::from_hex_string(cmp_str.substr(1));
-	} else if (cmp_str.size() == 6) {
-		// rrggbb color, wesnoth format
+	if (cmp_str.size() == 6 || cmp_str.size() == 7) {
+		// rrggbb or #rrggbb
 		return color_t::from_hex_string(cmp_str);
 	}
+
 	return font::NORMAL_COLOR;
 }
 
