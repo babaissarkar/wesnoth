@@ -34,7 +34,10 @@ ORIGIN=`pwd`
 
 export PREFIXDIR
 
-./setup-toolchains.py
+# Check, show all files here
+ls -lh
+
+python3 setup-toolchains.py
 
 mkdir -p $BUILDDIR/src
 pushd $BUILDDIR/src
