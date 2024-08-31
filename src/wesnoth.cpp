@@ -66,6 +66,8 @@
 
 #include <SDL2/SDL.h> // for SDL_Init, SDL_INIT_TIMER
 
+#define main SDL_main
+
 #include <boost/iostreams/categories.hpp>   // for input, output
 #include <boost/iostreams/copy.hpp>         // for copy
 #include <boost/iostreams/filter/bzip2.hpp> // for bzip2_compressor, etc
