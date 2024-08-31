@@ -25,6 +25,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'tools platform-tools build-tools'
 
       - name: Build Wesnoth and create APKS
         run: cd ..; ./build-apks;
