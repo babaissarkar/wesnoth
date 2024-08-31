@@ -17,7 +17,7 @@ jobs:
         #cache: gradle
         
     - name: Download dependency
-      run: cd packaging/android; ./build-android-dependencies/build-android-deps.sh;
+      run: cd packaging/android/build-android-dependencies; ./build-android-deps.sh;
 
     #- name: Grant execute permission for gradlew
     #  run: chmod +x gradlew
