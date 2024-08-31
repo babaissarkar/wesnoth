@@ -26,12 +26,12 @@ https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.ta
 )
 PACKAGES=()
 
-#python3 setup-toolchains.py
+python3 setup-toolchains.py
 
 ORIGIN=`pwd`
 
-#mkdir -p /home/ssarkar/wesnoth-android/android-build/src
-pushd /home/ssarkar/wesnoth-android/android-build/src
+mkdir -p $HOME/wesnoth-android/android-build/src
+pushd $HOME/wesnoth-android/android-build/src
 for url in ${SOURCES[@]}
 do
 	wget -nc $url
@@ -71,13 +71,13 @@ do
 done
 popd
 
-for prefix in /home/ssarkar/wesnoth-android/android-prefix/*
+for prefix in $HOME/wesnoth-android/android-prefix/*
 do
 	abi=`basename $prefix`
-	rm -rf /home/ssarkar/wesnoth-android/android-build/$abi
+	rm -rf $HOME/wesnoth-android/android-build/$abi
 
-	. /home/ssarkar/wesnoth-android/android-prefix/$abi/android.env
-	export PKG_CONFIG_PATH=/home/ssarkar/wesnoth-android/android-prefix/$abi/lib/pkgconfig
+	. $HOME/wesnoth-android/android-prefix/$abi/android.env
+	export PKG_CONFIG_PATH=$HOME/wesnoth-android/android-prefix/$abi/lib/pkgconfig
 
 	for package in ${PACKAGES[@]}
 	do
@@ -97,13 +97,13 @@ do
 
 		host_arg="--host=$HOST"
 
-		src_dir=/home/ssarkar/wesnoth-android/android-build/src/$package
-		build_dir=/home/ssarkar/wesnoth-android/android-build/$abi/$package
+		src_dir=$HOME/wesnoth-android/android-build/src/$package
+		build_dir=$HOME/wesnoth-android/android-build/$abi/$package
 		mkdir -p $build_dir
 		if [ -f $src_dir/configure ]
 		then
 			pushd $build_dir
-			$src_dir/configure $host_arg --prefix=/home/ssarkar/wesnoth-android/android-prefix/$abi $extra_flags
+			$src_dir/configure $host_arg --prefix=$HOME/wesnoth-android/android-prefix/$abi $extra_flags
 			make -j`nproc`
 			make install
 			popd
@@ -116,7 +116,7 @@ do
 			then
 				make clean
 			fi
-			./Configure --prefix=/home/ssarkar/wesnoth-android/android-prefix/$abi $extra_flags android-$ANDROID_ARCH -D__ANDROID_API__=$API
+			./Configure --prefix=$HOME/wesnoth-android/android-prefix/$abi $extra_flags android-$ANDROID_ARCH -D__ANDROID_API__=$API
 			make -j`nproc`
 			make install
 			popd
@@ -124,7 +124,7 @@ do
 		fi
 		if [ -f $src_dir/meson.build ]
 		then
-			meson setup --cross-file /home/ssarkar/wesnoth-android/android-prefix/$abi/android.ini $build_dir $src_dir -Dprefix=/home/ssarkar/wesnoth-android/android-prefix/$abi $extra_flags
+			meson setup --cross-file $HOME/wesnoth-android/android-prefix/$abi/android.ini $build_dir $src_dir -Dprefix=$HOME/wesnoth-android/android-prefix/$abi $extra_flags
 			ninja -C $build_dir
 			ninja -C $build_dir install
 			continue
@@ -145,7 +145,7 @@ do
 				BCABI="sysv"
 				BOOSTARCH="x86"
 			fi
-			./b2 --user-config=/home/ssarkar/wesnoth-android/android-prefix/$abi/android.jam --prefix=/home/ssarkar/wesnoth-android/android-prefix/$abi target-os=android architecture=$BOOSTARCH address-model=$BITNESS abi=$BCABI binary-format=elf install $extra_flags
+			./b2 --user-config=$HOME/wesnoth-android/android-prefix/$abi/android.jam --prefix=$HOME/wesnoth-android/android-prefix/$abi target-os=android architecture=$BOOSTARCH address-model=$BITNESS abi=$BCABI binary-format=elf install $extra_flags
 			popd
 			continue
 		fi
@@ -153,17 +153,17 @@ do
 		then
 			pushd $src_dir
 			make clean
-			make install CC="$CC -fPIC" AR="$AR" RANLIB="$RANLIB" PREFIX=/home/ssarkar/wesnoth-android/android-prefix/$abi
+			make install CC="$CC -fPIC" AR="$AR" RANLIB="$RANLIB" PREFIX=$HOME/wesnoth-android/android-prefix/$abi
 			popd
 			continue
 		fi
 	done
 done
 
-cd /home/ssarkar/wesnoth-android/android-build/src/SDL2-ndk-build
+cd $HOME/wesnoth-android/android-build/src/SDL2-ndk-build
 $NDK/ndk-build
 for lib in libs/*/*.so
 do
 	instdir=$(basename $(dirname $lib))
-	cp $lib /home/ssarkar/wesnoth-android/android-prefix/$instdir/lib/
+	cp $lib $HOME/wesnoth-android/android-prefix/$instdir/lib/
 done
