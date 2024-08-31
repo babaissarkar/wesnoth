@@ -13,10 +13,7 @@ jobs:
 
       - name: Install auxiliary build tools
         run: sudo apt-get install -y meson gperf
-      
-      - name: Download and build wesnoth dependencies
-        run: cd packaging/android/build-android-dependencies; ./build-android-deps.sh;
-          
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4.0.0
         with:
@@ -26,7 +23,10 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'tools platform-tools build-tools'
+          packages: 'tools platform-tools build-tools;34.0.0'
+      
+      - name: Download and build wesnoth dependencies
+        run: cd packaging/android/build-android-dependencies; ./build-android-deps.sh;
 
       - name: Build Wesnoth and create APKS
         run: cd ..; ./build-apks;

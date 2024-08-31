@@ -4,12 +4,11 @@ REPO=`pwd`/../..
 
 rm -rf /home/ssarkar/wesnoth-android/wesnoth-aab-base
 
-#for arch in "x86_64" "armeabi-v7a" "arm64-v8a" "x86"
-for arch in "armeabi-v7a"
+for arch in "x86_64" "armeabi-v7a" "arm64-v8a" "x86"
 do
 	mkdir -p /home/ssarkar/wesnoth-android/wesnoth-$arch
 	pushd /home/ssarkar/wesnoth-android/wesnoth-$arch
-		scons -j`nproc` -Y $REPO prefix=/home/ssarkar/wesnoth-android/android-prefix/$arch host=android-$arch ndkdir=/home/ssarkar/Android/android-ndk-r26d extra_flags_config=-lm autorevision=false android_api=23 android_home=/home/ssarkar/Android/Sdk/ apk
+		scons -j`nproc` -Y $REPO prefix=/home/ssarkar/wesnoth-android/android-prefix/$arch host=android-$arch ndkdir=/home/ssarkar/Android/android-ndk-r26d extra_flags_config=-lm autorevision=false android_api=29 android_home=/home/ssarkar/Android/Sdk/ apk
 	popd
 	mkdir -p /home/ssarkar/wesnoth-android/wesnoth-aab-base
 	pushd /home/ssarkar/wesnoth-android/wesnoth-aab-base
