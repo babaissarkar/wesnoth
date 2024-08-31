@@ -3,8 +3,9 @@ import json
 from subprocess import run
 from pathlib import Path
 from os import environ
+import sys
 
-ndk = Path(environ.get("ANDROID_NDK_HOME"))
+ndk = Path(sys.argv[1])
 api = 29
 
 abis = json.load(open(ndk / "meta/abis.json"))

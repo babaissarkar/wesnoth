@@ -41,7 +41,7 @@ export ANDROID_NDK_HOME="$BUILDDIR/android-ndk-r26d-linux"
 ls -lh $BUILDDIR
 ###
 
-python3 setup-toolchains.py
+python3 setup-toolchains.py $ANDROID_NDK_HOME
 
 mkdir -p $BUILDDIR/src
 pushd $BUILDDIR/src
