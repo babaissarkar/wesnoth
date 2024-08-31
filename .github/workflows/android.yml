@@ -27,6 +27,9 @@ jobs:
           local-cache: true
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Install tools
+        run: sudo apt-get install -y meson
           
       - name: Download dependencies
         run: cd packaging/android/build-android-dependencies; ./build-android-deps.sh;
