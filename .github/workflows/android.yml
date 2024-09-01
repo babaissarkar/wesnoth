@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4.1.1
 
       - name: Install auxiliary build tools
-        run: sudo apt-get install -y meson gperf
+        run: sudo apt-get install -y meson gperf scons
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4.0.0
