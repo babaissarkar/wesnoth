@@ -24,7 +24,7 @@ pushd /tmp/wesnoth-aab-base
 popd
 wget -nc https://github.com/google/bundletool/releases/download/1.16.0/bundletool-all-1.16.0.jar
 BUNDLETOOL=bundletool-all-1.16.0.jar
-rm wesnoth-debug.aab
+rm -f wesnoth-debug.aab
 java -jar $BUNDLETOOL build-bundle --modules=/tmp/wesnoth-aab-base/base.zip --output=wesnoth-debug.aab
-rm wesnoth-debug.apks
+rm -f wesnoth-debug.apks
 java -jar $BUNDLETOOL build-apks --bundle=wesnoth-debug.aab --output=wesnoth-debug.apks
