@@ -29,7 +29,7 @@ jobs:
         run: cd packaging/android/build-android-dependencies; ./build-android-deps.sh;
 
       - name: Build Wesnoth and create APKS
-        run: cd ..; ./build-apks;
+        run: ls -lh; ./build-apks;
 
       - name: Upload APKS
         uses: actions/upload-artifact@v4.3.1
