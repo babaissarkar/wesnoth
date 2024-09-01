@@ -29,13 +29,13 @@ jobs:
         run: cd packaging/android/build-android-dependencies; ./build-android-deps.sh;
 
       - name: Build Wesnoth and create APKS
-        run: ls -lh; ./build-apks;
+        run: ls -lh; cd packaging/android; ./build-apks;
 
       - name: Upload APKS
         uses: actions/upload-artifact@v4.3.1
         with:
           name: wesnoth-debug.apks
-          path: "./wesnoth-debug.apks"
+          path: "packaging/android/wesnoth-debug.apks"
             
             #- name: Grant execute permission for gradlew
             #  run: chmod +x gradlew
