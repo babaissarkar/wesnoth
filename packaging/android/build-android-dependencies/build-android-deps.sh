@@ -34,14 +34,7 @@ ORIGIN=`pwd`
 
 export PREFIXDIR
 
-### Download ndk
-wget -nc "https://dl.google.com/android/repository/android-ndk-r26d-linux.zip" -P $BUILDDIR
-unzip "$BUILDDIR/android-ndk-r26d-linux.zip" -d $BUILDDIR
-export ANDROID_NDK_HOME="$BUILDDIR/android-ndk-r26d"
-ls -lh $BUILDDIR
-###
-
-python3 setup-toolchains.py $ANDROID_NDK_HOME
+python3 setup-toolchains.py $1
 
 mkdir -p $BUILDDIR/src
 pushd $BUILDDIR/src
