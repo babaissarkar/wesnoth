@@ -36,6 +36,10 @@
 #include <boost/process.hpp>
 #include "game_config_view.hpp"
 
+#ifdef __ANDROID__
+#include <SDL2/SDL_system.h>
+#endif
+
 #ifdef _WIN32
 #include <boost/locale.hpp>
 
@@ -621,6 +625,12 @@ static void setup_user_data_dir()
 #if defined(__APPLE__) && !defined(__IPHONEOS__)
 	migrate_apple_config_directory_for_unsandboxed_builds();
 #endif
+
+#ifdef __ANDROID__
+	user_data_dir = bfs::path(SDL_AndroidGetExternalStoragePath());
+	PLAIN_LOG << __FUNCTION__ << " " << user_data_dir;
+#endif
+
 	if(!file_exists(user_data_dir / "logs")) {
 		game_config::check_migration = true;
 	}
@@ -1623,7 +1633,7 @@ std::string get_wml_location(const std::string& filename, const std::string& cur
 
 	if(filename[0] == '~') {
 		result /= get_user_data_path() / "data" / filename.substr(1);
-		DBG_FS << "  trying '" << result.string() << "'";
+		PLAIN_LOG << "  trying '" << result.string() << "'";
 	} else if(*fpath.begin() == ".") {
 		if(!current_dir.empty()) {
 			result /= bfs::path(current_dir);
@@ -1637,10 +1647,10 @@ std::string get_wml_location(const std::string& filename, const std::string& cur
 	}
 
 	if(result.empty() || !file_exists(result)) {
-		DBG_FS << "  not found";
+		PLAIN_LOG << "  not found";
 		result.clear();
 	} else {
-		DBG_FS << "  found: '" << result.string() << "'";
+		PLAIN_LOG << "  found: '" << result.string() << "'";
 	}
 
 	return result.string();

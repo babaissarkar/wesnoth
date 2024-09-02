@@ -53,6 +53,11 @@
 #include "wml_exception.hpp" // for wml_exception
 
 #include <algorithm> // for copy, max, min, stable_sort
+
+#ifdef __ANDROID__
+#include <SDL2/SDL_system.h>
+#endif
+
 #ifdef _WIN32
 #include <boost/process/windows.hpp>
 #endif
@@ -129,6 +134,10 @@ game_launcher::game_launcher(const commandline_options& cmdline_opts)
 		font_manager_.~manager();
 		new (&font_manager_) font::manager();
 	}
+	
+	#ifdef __ANDROID__
+		game_config::path = SDL_AndroidGetInternalStoragePath();
+	#endif
 
 	if(cmdline_opts_.core_id) {
 		preferences::set_core_id(*cmdline_opts_.core_id);

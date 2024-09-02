@@ -1143,6 +1143,10 @@ int main(int argc, char** argv)
 	events::event_context global_context;
 
 	SDL_StartTextInput();
+	
+	#ifdef __ANDROID__
+		nobanner = false;
+	#endif
 
 	try {
 		if(!nobanner) {
