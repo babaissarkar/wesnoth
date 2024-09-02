@@ -982,6 +982,105 @@ int main(int argc, char** argv)
 	_putenv("FONTCONFIG_PATH=fonts");
 #endif
 
+	// write_to_log_file means that writing to the log file will be done, if true.
+	// if false, output will be written to the terminal
+	// on windows, if wesnoth was not started from a console, then it will allocate one
+	bool write_to_log_file = !getenv("WESNOTH_NO_LOG_FILE");
+	[[maybe_unused]]
+	bool no_con = false;
+
+	// --nobanner needs to be detected before the main command-line parsing happens
+	// --log-to needs to be detected so the logging output location is set before any actual logging happens
+	bool nobanner = false;
+	for(const auto& arg : args) {
+		if(arg == "--nobanner") {
+			nobanner = true;
+			break;
+		}
+	}
+
+	// Some switches force a Windows console to be attached to the process even
+	// if Wesnoth is an IMAGE_SUBSYSTEM_WINDOWS_GUI executable because they
+	// turn it into a CLI application. Also, --no-log-to-file in particular attaches
+	// a console to a regular GUI game session.
+	//
+	// It's up to commandline_options later to handle these switches (except
+	// --no-log-to-file) later and emit any applicable console output, but right here
+	// we need a rudimentary check for the switches in question to set up the
+	// console before proceeding any further.
+	for(const auto& arg : args) {
+		// Switches that don't take arguments
+		static const std::set<std::string> terminal_switches = {
+			"--config-path", "--data-path", "-h", "--help", "--logdomains", "--nogui", "-R", "--report",
+			"--simple-version", "--userconfig-path", "--userdata-path", "-v", "--version"
+		};
+
+		// Switches that take arguments, the switch may have the argument past
+		// the first = character, or in a subsequent argv entry which we don't
+		// care about -- we just want to see if the switch is there.
+		static const std::set<std::string> terminal_arg_switches = {
+			"--bunzip2", "--bzip2", "-D", "--diff", "--gunzip", "--gzip", "-p", "--preprocess", "-P", "--patch",
+			"--render-image", "--screenshot", "-u", "--unit", "-V", "--validate", "--validate-schema"
+		};
+
+		auto switch_matches_arg = [&arg](const std::string& sw) {
+			const auto pos = arg.find('=');
+			return pos == std::string::npos ? arg == sw : arg.substr(0, pos) == sw;
+		};
+
+		if(terminal_switches.find(arg) != terminal_switches.end() ||
+			std::find_if(terminal_arg_switches.begin(), terminal_arg_switches.end(), switch_matches_arg) != terminal_arg_switches.end()) {
+			write_to_log_file = false;
+		}
+
+		if(arg == "--no-log-to-file") {
+			write_to_log_file = false;
+		} else if(arg == "--log-to-file") {
+			write_to_log_file = true;
+		}
+
+		if(arg == "--wnoconsole") {
+			no_con = true;
+		}
+	}
+
+	// setup logging to file
+	// else handle redirecting the output and potentially attaching a console on windows
+	if(write_to_log_file) {
+		lg::set_log_to_file();
+	} else {
+#ifdef _WIN32
+		if(!no_con) {
+			lg::do_console_redirect();
+		}
+#endif
+	}
+
+	SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
+	// Is there a reason not to just use SDL_INIT_EVERYTHING?
+	if(SDL_Init(SDL_INIT_TIMER) < 0) {
+		PLAIN_LOG << "Couldn't initialize SDL: " << SDL_GetError();
+		return (1);
+	}
+	atexit(SDL_Quit);
+
+	// Mac's touchpad generates touch events too.
+	// Ignore them until Macs have a touchscreen: https://forums.libsdl.org/viewtopic.php?p=45758
+#if defined(__APPLE__) && !defined(__IPHONEOS__)
+	SDL_EventState(SDL_FINGERMOTION, SDL_DISABLE);
+	SDL_EventState(SDL_FINGERDOWN, SDL_DISABLE);
+	SDL_EventState(SDL_FINGERUP, SDL_DISABLE);
+#endif
+
+	// declare this here so that it will always be at the front of the event queue.
+	events::event_context global_context;
+
+	SDL_StartTextInput();
+	
+	#ifdef __ANDROID__
+		nobanner = false;
+	#endif
+
 	try {
 		commandline_options cmdline_opts = commandline_options(args);
 		int finished = process_command_args(cmdline_opts);
