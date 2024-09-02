@@ -38,6 +38,10 @@
 #include <boost/process.hpp>
 #include "game_config_view.hpp"
 
+#ifdef __ANDROID__
+#include <SDL2/SDL_system.h>
+#endif
+
 #ifdef _WIN32
 #include <boost/locale.hpp>
 
@@ -668,6 +672,12 @@ static void setup_user_data_dir()
 #if defined(__APPLE__) && !defined(__IPHONEOS__)
 	migrate_apple_config_directory_for_unsandboxed_builds();
 #endif
+
+#ifdef __ANDROID__
+	user_data_dir = bfs::path(SDL_AndroidGetExternalStoragePath());
+	PLAIN_LOG << __FUNCTION__ << " " << user_data_dir;
+#endif
+
 	if(!file_exists(user_data_dir / "logs")) {
 		game_config::check_migration = true;
 	}
@@ -1761,9 +1771,15 @@ utils::optional<std::string> get_wml_location(const std::string& path, const uti
 	bfs::path fpath(path);
 	bfs::path result;
 
+<<<<<<< HEAD
 	if(path[0] == '~') {
 		result = get_user_data_path() / "data" / path.substr(1);
 		DBG_FS << "  trying '" << result.string() << "'";
+=======
+	if(filename[0] == '~') {
+		result /= get_user_data_path() / "data" / filename.substr(1);
+		PLAIN_LOG << "  trying '" << result.string() << "'";
+>>>>>>> a385dd6d6f5 (android specific changes for data and userdata dirs)
 	} else if(*fpath.begin() == ".") {
 		if (!current_dir) {
 			WRN_FS << "Cannot resolve " << path << " since the current directory is unknown!";
@@ -1783,12 +1799,11 @@ utils::optional<std::string> get_wml_location(const std::string& path, const uti
 		result = bfs::path(game_config::path) / "data" / path;
 	}
 
-	if(!file_exists(result)) {
-		DBG_FS << "  not found";
-		return utils::nullopt;
+	if(result.empty() || !file_exists(result)) {
+		PLAIN_LOG << "  not found";
+		result.clear();
 	} else {
-		DBG_FS << "  found: '" << result.string() << "'";
-		return result.string();
+		PLAIN_LOG << "  found: '" << result.string() << "'";
 	}
 }
 
