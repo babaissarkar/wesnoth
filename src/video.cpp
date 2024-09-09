@@ -35,6 +35,12 @@
 #include <cassert>
 #include <vector>
 
+#ifdef __ANDROID__
+extern "C" {
+	SDL_Surface * Android_AP_getFrameBuffer();
+}
+#endif
+
 static lg::log_domain log_display("display");
 #define LOG_DP LOG_STREAM(info, log_display)
 #define ERR_DP LOG_STREAM(err, log_display)
@@ -371,6 +377,10 @@ void init_window(bool hidden)
 	} else if(prefs::get().maximized()) {
 		window_flags |= SDL_WINDOW_MAXIMIZED;
 	}
+	
+	#ifdef ANDROID
+		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles");
+	#endif
 
 	if(hidden) {
 		LOG_DP << "hiding main window";
@@ -398,6 +408,8 @@ void init_window(bool hidden)
 	SDL_DisplayMode currentDisplayMode;
 	SDL_GetCurrentDisplayMode(window->get_display_index(), &currentDisplayMode);
 	refresh_rate_ = currentDisplayMode.refresh_rate != 0 ? currentDisplayMode.refresh_rate : 60;
+	
+	window->set_size(w, h);
 
 	update_framebuffer();
 }
