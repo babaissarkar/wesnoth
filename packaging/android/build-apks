@@ -16,16 +16,18 @@ do
 		unzip -n /home/ssarkar/wesnoth-android/wesnoth-$arch/packaging/android/wesnoth-debug.apk
 	popd
 done
-pushd /home/ssarkar/wesnoth-android/wesnoth-aab-base
-	mkdir manifest
-	mv AndroidManifest.xml manifest/
-	mkdir dex
-	mv classes.dex dex/
-	zip -r base.zip *
-popd
-wget -nc https://github.com/google/bundletool/releases/download/1.16.0/bundletool-all-1.16.0.jar
-BUNDLETOOL=bundletool-all-1.16.0.jar
-rm -f wesnoth-debug.aab
-java -jar $BUNDLETOOL build-bundle --modules=/home/ssarkar/wesnoth-android/wesnoth-aab-base/base.zip --output=wesnoth-debug.aab
-rm -f wesnoth-debug.apks
-java -jar $BUNDLETOOL build-apks --mode=universal --bundle=wesnoth-debug.aab --output=wesnoth-debug.apks
+rm -f /home/ssarkar/Documents/Projects/C++/wesnoth/packaging/android/app/src/main/jniLibs/armeabi-v7a/libmain.so
+cp -v /home/ssarkar/wesnoth-android/wesnoth-armeabi-v7a/packaging/android/lib/libmain.so /home/ssarkar/Documents/Projects/C++/wesnoth/packaging/android/app/src/main/jniLibs/armeabi-v7a/
+#pushd /home/ssarkar/wesnoth-android/wesnoth-aab-base
+#	mkdir manifest
+#	mv AndroidManifest.xml manifest/
+#	mkdir dex
+#	mv classes.dex dex/
+#	zip -r base.zip *
+#popd
+#wget -nc https://github.com/google/bundletool/releases/download/1.16.0/bundletool-all-1.16.0.jar
+#BUNDLETOOL=bundletool-all-1.16.0.jar
+#rm -f wesnoth-debug.aab
+#java -jar $BUNDLETOOL build-bundle --modules=/home/ssarkar/wesnoth-android/wesnoth-aab-base/base.zip --output=wesnoth-debug.aab
+#rm -f wesnoth-debug.apks
+#java -jar $BUNDLETOOL build-apks --mode=universal --bundle=wesnoth-debug.aab --output=wesnoth-debug.apks

@@ -732,8 +732,10 @@ static int do_gameloop(commandline_options& cmdline_opts)
 	gui2::init();
 	gui2::switch_theme(prefs::get().gui2_theme());
 	const gui2::event::manager gui_event_manager;
+	
+	// Test
+//	gui2::show_message(_("Test"), "Message", gui2::dialogs::message::ok_button);
 
-	// if the log directory is not writable, then this is the error condition so show the error message.
 	// if the log directory is writable, then there's no issue.
 	// if the optional isn't set, then logging to file has been disabled, so there's no issue.
 	if(!lg::log_dir_writable().value_or(true)) {
@@ -749,30 +751,38 @@ static int do_gameloop(commandline_options& cmdline_opts)
 		game_config::check_migration = false;
 		gui2::dialogs::migrate_version_selection::execute();
 	}
-
-	gui2::dialogs::loading_screen::display([&res, &config_manager, &cmdline_opts]() {
-		gui2::dialogs::loading_screen::progress(loading_stage::load_config);
+	
+	PLAIN_LOG << __LINE__ << "checkpoint";
+	
+//	gui2::dialogs::loading_screen::display([&res, &config_manager, &cmdline_opts]() {
+//		gui2::dialogs::loading_screen::progress(loading_stage::load_config);
+//		loading_stage::load_config();
+		PLAIN_LOG << "initialize game config";
 		res = config_manager.init_game_config(game_config_manager::NO_FORCE_RELOAD);
 
 		if(res == false) {
 			PLAIN_LOG << "could not initialize game config";
-			return;
+			return 1;
 		}
 
-		gui2::dialogs::loading_screen::progress(loading_stage::init_fonts);
+		PLAIN_LOG << "initialize fonts";
+//		loading_stage::init_fonts();
+//		gui2::dialogs::loading_screen::progress(loading_stage::init_fonts);
 
 		res = font::load_font_config();
 		if(res == false) {
 			PLAIN_LOG << "could not re-initialize fonts for the current language";
-			return;
+			return 1;
 		}
 
+		PLAIN_LOG << "initialize addons";
 		if(!game_config::no_addons && !cmdline_opts.noaddons)  {
-			gui2::dialogs::loading_screen::progress(loading_stage::refresh_addons);
+//			gui2::dialogs::loading_screen::progress(loading_stage::refresh_addons);
+//			loading_stage::refresh_addons();
 
 			refresh_addon_version_info_cache();
 		}
-	});
+//	});
 
 	if(res == false) {
 		return 1;
@@ -788,6 +798,7 @@ static int do_gameloop(commandline_options& cmdline_opts)
 		{"command_line", std::bind(&commandline_options::to_config, &cmdline_opts)},
 	};
 
+	PLAIN_LOG << "initialize titlescreen";
 	plugins_context plugins("titlescreen", callbacks, accessors);
 
 	plugins.set_callback("exit", [](const config& cfg) { safe_exit(cfg["code"].to_int(0)); }, false);
@@ -1077,9 +1088,9 @@ int main(int argc, char** argv)
 
 	SDL_StartTextInput();
 	
-	#ifdef __ANDROID__
-		nobanner = false;
-	#endif
+//	#ifdef __ANDROID__
+//		nobanner = false;
+//	#endif
 
 	try {
 		commandline_options cmdline_opts = commandline_options(args);
