@@ -761,9 +761,12 @@ static void from_cairo_format(uint32_t & c)
 void pango_text::render(PangoLayout& layout, const SDL_Rect& viewport, const unsigned stride)
 {
 	cairo_format_t format = CAIRO_FORMAT_ARGB32;
+	
+	PLAIN_LOG << viewport;
 
 	uint8_t* buffer = &surface_buffer_[0];
 
+	PLAIN_LOG << "text: " << pango_layout_get_text(&layout);
 	std::unique_ptr<cairo_surface_t, std::function<void(cairo_surface_t*)>> cairo_surface(
 		cairo_image_surface_create_for_data(buffer, format, viewport.w, viewport.h, stride), cairo_surface_destroy);
 	std::unique_ptr<cairo_t, std::function<void(cairo_t*)>> cr(cairo_create(cairo_surface.get()), cairo_destroy);
@@ -828,7 +831,7 @@ surface pango_text::create_surface(const SDL_Rect& viewport)
 		return nullptr;
 	}
 
-	DBG_FT << "creating new text surface";
+	PLAIN_LOG << "creating new text surface";
 
 	// Check to prevent arithmetic overflow when calculating (stride * height).
 	// The size of the viewport should already provide a far lower limit on the
@@ -836,6 +839,8 @@ surface pango_text::create_surface(const SDL_Rect& viewport)
 	if(viewport.h > std::numeric_limits<int>::max() / stride) {
 		throw std::length_error("Text is too long to render");
 	}
+
+	PLAIN_LOG << viewport.w << " " << viewport.h << " " << stride;
 
 	// Resize buffer appropriately and set all pixel values to 0.
 	surface_buffer_.assign(viewport.h * stride, 0);

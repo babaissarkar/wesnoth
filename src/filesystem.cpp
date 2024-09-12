@@ -628,6 +628,7 @@ static void setup_user_data_dir()
 
 #ifdef __ANDROID__
 	user_data_dir = bfs::path(SDL_AndroidGetExternalStoragePath());
+//	user_data_dir = bfs::path("/storage/emulated/0/wesnoth/userdata");
 	PLAIN_LOG << __FUNCTION__ << " " << user_data_dir;
 #endif
 
@@ -1637,20 +1638,27 @@ std::string get_wml_location(const std::string& filename, const std::string& cur
 	} else if(*fpath.begin() == ".") {
 		if(!current_dir.empty()) {
 			result /= bfs::path(current_dir);
+			PLAIN_LOG << "  trying '" << result.string() << "'";
 		} else {
 			result /= bfs::path(game_config::path) / "data";
+			PLAIN_LOG << "  trying '" << result.string() << "'";
 		}
 
 		result /= filename;
+		PLAIN_LOG << "  trying '" << result.string() << "'";
 	} else if(!game_config::path.empty()) {
 		result /= bfs::path(game_config::path) / "data" / filename;
+		PLAIN_LOG << "  trying '" << result.string() << "'";
 	}
 
-	if(result.empty() || !file_exists(result)) {
-		PLAIN_LOG << "  not found";
+	if(result.empty()) {
+		PLAIN_LOG << filename << " not found";
+		result.clear();
+	} else if (!file_exists(result)) {
+		PLAIN_LOG << filename << " does not exist";
 		result.clear();
 	} else {
-		PLAIN_LOG << "  found: '" << result.string() << "'";
+		PLAIN_LOG << filename << " found: '" << result.string() << "'";
 	}
 
 	return result.string();

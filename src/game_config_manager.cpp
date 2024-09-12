@@ -101,6 +101,7 @@ game_config_manager* game_config_manager::get()
 
 bool game_config_manager::init_game_config(FORCE_RELOAD_CONFIG force_reload)
 {
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	// Add preproc defines according to the command line arguments.
 	game_config::scoped_preproc_define multiplayer("MULTIPLAYER", cmdline_opts_.multiplayer);
 	game_config::scoped_preproc_define test("TEST", cmdline_opts_.test.has_value());
@@ -109,11 +110,15 @@ bool game_config_manager::init_game_config(FORCE_RELOAD_CONFIG force_reload)
 	game_config::scoped_preproc_define title_screen("TITLE_SCREEN",
 		!cmdline_opts_.multiplayer && !cmdline_opts_.test && !cmdline_opts_.editor);
 
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	game_config::reset_color_info();
 
 	load_game_config_with_loadscreen(force_reload, nullptr, "");
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 	game_config::load_config(game_config().mandatory_child("game_config"));
+	
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 	// It's necessary to block the event thread while load_hotkeys() runs, otherwise keyboard input
 	// can cause a crash by accessing the list of hotkeys while it's being modified.
@@ -150,9 +155,12 @@ bool map_includes(const preproc_map& general, const preproc_map& special)
 void game_config_manager::load_game_config_with_loadscreen(
 	FORCE_RELOAD_CONFIG force_reload, const game_classification* classification, const std::string& scenario_id)
 {
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	if(!lg::info().dont_log(log_config)) {
 		auto out = formatter();
 		out << "load_game_config: defines:";
+		
+		PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 		for(const auto& pair : cache_.get_preproc_map()) {
 			out << pair.first << ",";
@@ -161,11 +169,15 @@ void game_config_manager::load_game_config_with_loadscreen(
 		out << "\n";
 		FORCE_LOG_TO(lg::info(), log_config) << out.str();
 	}
+	
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 	game_config::scoped_preproc_define debug_mode("DEBUG_MODE",
 		game_config::debug || game_config::mp_debug);
 
 	bool reload_everything = true;
+	
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 	// Game_config already holds requested config in memory.
 	if(!game_config_.empty()) {
@@ -178,11 +190,14 @@ void game_config_manager::load_game_config_with_loadscreen(
 		}
 	}
 
-	LOG_CONFIG << "load_game_config reload everything: " << reload_everything;
+	PLAIN_LOG << "load_game_config reload everything: " << reload_everything;
 
-	gui2::dialogs::loading_screen::display([this, reload_everything, classification, scenario_id]() {
-		load_game_config(reload_everything, classification, scenario_id);
-	});
+//	gui2::dialogs::loading_screen::display([this, reload_everything, classification, scenario_id]() {
+//		load_game_config(reload_everything, classification, scenario_id);
+//	});
+	load_game_config(reload_everything, classification, scenario_id);
+	
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 }
 
 void game_config_manager::load_game_config(bool reload_everything, const game_classification* classification, const std::string& scenario_id)
@@ -191,6 +206,7 @@ void game_config_manager::load_game_config(bool reload_everything, const game_cl
 	// if command line parameter is selected
 	// also if we're in multiplayer and actual debug mode is disabled.
 
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	// The loadscreen will erase the titlescreen.
 	// NOTE: even without loadscreen, needed after MP lobby.
 	try {
@@ -202,17 +218,21 @@ void game_config_manager::load_game_config(bool reload_everything, const game_cl
 		// Handle terrains so that they are last loaded from the core.
 		// Load every compatible addon.
 		if(reload_everything) {
+			PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 			gui2::dialogs::loading_screen::progress(loading_stage::verify_cache);
 			filesystem::data_tree_checksum();
 			gui2::dialogs::loading_screen::progress(loading_stage::create_cache);
+			PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 			// Start transaction so macros are shared.
 			game_config::config_cache_transaction main_transaction;
 			achievements_.reload();
+			PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 			// Load mainline cores definition file.
 			config cores_cfg;
 			cache_.get_config(game_config::path + "/data/cores.cfg", cores_cfg);
+			PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 			// Append the $user_campaign_dir/*/cores.cfg files to the cores.
 			std::vector<std::string> user_dirs;
@@ -222,6 +242,7 @@ void game_config_manager::load_game_config(bool reload_everything, const game_cl
 				filesystem::get_files_in_dir(
 					user_campaign_dir, &user_files, &user_dirs, filesystem::name_mode::ENTIRE_FILE_PATH);
 			}
+			PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 			for(const std::string& umc : user_dirs) {
 				const std::string cores_file = umc + "/cores.cfg";
@@ -231,6 +252,7 @@ void game_config_manager::load_game_config(bool reload_everything, const game_cl
 					cores_cfg.append(cores);
 				}
 			}
+			PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 			// Validate every core
 			config valid_cores;

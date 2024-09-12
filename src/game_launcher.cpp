@@ -118,14 +118,18 @@ game_launcher::game_launcher(const commandline_options& cmdline_opts)
 	bool no_music = false;
 	bool no_sound = false;
 
+#ifdef __ANDROID__
+//		game_config::path = SDL_AndroidGetInternalStoragePath();
+		game_config::path = SDL_AndroidGetExternalStoragePath() + std::string("/gamedata");
+#else
 	// The path can be hardcoded and it might be a relative path.
 	if(!game_config::path.empty() &&
-#ifdef _WIN32
+	#ifdef _WIN32
 		// use c_str to ensure that index 1 points to valid element since c_str() returns null-terminated string
 		game_config::path.c_str()[1] != ':'
-#else
+	#else
 		game_config::path[0] != '/'
-#endif
+	#endif
 	)
 	{
 		game_config::path = filesystem::get_cwd() + '/' + game_config::path;
@@ -134,10 +138,7 @@ game_launcher::game_launcher(const commandline_options& cmdline_opts)
 		font_manager_.~manager();
 		new (&font_manager_) font::manager();
 	}
-	
-	#ifdef __ANDROID__
-		game_config::path = SDL_AndroidGetInternalStoragePath();
-	#endif
+#endif
 
 	if(cmdline_opts_.core_id) {
 		preferences::set_core_id(*cmdline_opts_.core_id);

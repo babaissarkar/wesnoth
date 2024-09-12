@@ -426,6 +426,7 @@ text_shape::text_shape(const config& cfg)
 
 void text_shape::draw(wfl::map_formula_callable& variables)
 {
+#if false
 	assert(variables.has_key("text"));
 
 	// We first need to determine the size of the text which need the rendered
@@ -483,6 +484,7 @@ void text_shape::draw(wfl::map_formula_callable& variables)
 	dst_rect.h = std::min(dst_rect.h, tex.h());
 
 	draw::blit(tex, dst_rect);
+#endif
 }
 
 /***** ***** ***** ***** ***** CANVAS ***** ***** ***** ***** *****/
