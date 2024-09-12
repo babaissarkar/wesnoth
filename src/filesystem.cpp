@@ -675,6 +675,7 @@ static void setup_user_data_dir()
 
 #ifdef __ANDROID__
 	user_data_dir = bfs::path(SDL_AndroidGetExternalStoragePath());
+//	user_data_dir = bfs::path("/storage/emulated/0/wesnoth/userdata");
 	PLAIN_LOG << __FUNCTION__ << " " << user_data_dir;
 #endif
 
@@ -1771,39 +1772,33 @@ utils::optional<std::string> get_wml_location(const std::string& path, const uti
 	bfs::path fpath(path);
 	bfs::path result;
 
-<<<<<<< HEAD
-	if(path[0] == '~') {
-		result = get_user_data_path() / "data" / path.substr(1);
-		DBG_FS << "  trying '" << result.string() << "'";
-=======
 	if(filename[0] == '~') {
 		result /= get_user_data_path() / "data" / filename.substr(1);
 		PLAIN_LOG << "  trying '" << result.string() << "'";
->>>>>>> a385dd6d6f5 (android specific changes for data and userdata dirs)
 	} else if(*fpath.begin() == ".") {
-		if (!current_dir) {
-			WRN_FS << "Cannot resolve " << path << " since the current directory is unknown!";
-			return utils::nullopt;
+		if(!current_dir.empty()) {
+			result /= bfs::path(current_dir);
+			PLAIN_LOG << "  trying '" << result.string() << "'";
+		} else {
+			result /= bfs::path(game_config::path) / "data";
+			PLAIN_LOG << "  trying '" << result.string() << "'";
 		}
-		result = bfs::path(*current_dir) / path;
-		error_code ec;
-		bfs::path c = bfs::canonical(result, ec);
-		if (!is_prefix(c, bfs::path(game_config::path) / "data") && !is_prefix(c, get_user_data_path() / "data")) {
-			WRN_FS << "Resolved path " << c << " is outside game and user data directories!";
-		}
-	} else {
-		if(game_config::path.empty()) {
-			WRN_FS << "Cannot resolve " << path << " since the game data directory is unknown!";
-			return utils::nullopt;
-		}
-		result = bfs::path(game_config::path) / "data" / path;
+
+		result /= filename;
+		PLAIN_LOG << "  trying '" << result.string() << "'";
+	} else if(!game_config::path.empty()) {
+		result /= bfs::path(game_config::path) / "data" / filename;
+		PLAIN_LOG << "  trying '" << result.string() << "'";
 	}
 
-	if(result.empty() || !file_exists(result)) {
-		PLAIN_LOG << "  not found";
+	if(result.empty()) {
+		PLAIN_LOG << filename << " not found";
+		result.clear();
+	} else if (!file_exists(result)) {
+		PLAIN_LOG << filename << " does not exist";
 		result.clear();
 	} else {
-		PLAIN_LOG << "  found: '" << result.string() << "'";
+		PLAIN_LOG << filename << " found: '" << result.string() << "'";
 	}
 }
 
