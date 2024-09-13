@@ -38,7 +38,7 @@
 
 #ifdef __ANDROID__
 extern "C" {
-	SDL_Surface * Android_AP_getFrameBuffer();
+	SDL_Surface* Android_AP_getFrameBuffer();
 }
 #endif
 
@@ -380,7 +380,7 @@ void init_window(bool hidden)
 		window_flags |= SDL_WINDOW_MAXIMIZED;
 	}
 	
-	#ifdef ANDROID
+	#ifdef __ANDROID__
 		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles");
 	#endif
 
@@ -411,7 +411,9 @@ void init_window(bool hidden)
 	SDL_GetCurrentDisplayMode(window->get_display_index(), &currentDisplayMode);
 	refresh_rate_ = currentDisplayMode.refresh_rate != 0 ? currentDisplayMode.refresh_rate : 60;
 	
-	window->set_size(w, h);
+	#ifdef __ANDROID__
+		window->set_size(w, h);
+	#endif
 
 	update_framebuffer();
 }
