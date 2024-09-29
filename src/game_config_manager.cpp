@@ -122,21 +122,24 @@ bool game_config_manager::init_game_config(FORCE_RELOAD_CONFIG force_reload)
 
 	// It's necessary to block the event thread while load_hotkeys() runs, otherwise keyboard input
 	// can cause a crash by accessing the list of hotkeys while it's being modified.
-	events::call_in_main_thread([this]() {
+//	events::call_in_main_thread([this]() { //FIXME causes crash, log-290924.txt
 		const hotkey::scope_changer hk_scope{hotkey::scope_main, false};
 
 		// Load the standard hotkeys, then apply any player customizations.
 		hotkey::load_default_hotkeys(game_config());
 		preferences::load_hotkeys();
-	});
+//	}); //FIXME causes crash log-290924.txt
 
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	// TODO: consider making this part of preferences::manager in some fashion
-	preferences::init_advanced_manager(game_config());
+//	preferences::init_advanced_manager(game_config()); //FIXME causes crash log-290924.txt
 
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	::init_textdomains(game_config());
 	about::set_about(game_config());
 	ai::configuration::init(game_config());
-
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
+	
 	return true;
 }
 
