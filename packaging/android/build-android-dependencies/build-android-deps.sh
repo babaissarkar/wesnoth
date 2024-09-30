@@ -1,28 +1,29 @@
 #!/bin/bash -xe
 
 SOURCES=(
-https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
-https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz
-https://ftp.gnu.org/pub/gnu/gettext/gettext-0.21.1.tar.gz
-https://sourceforge.net/projects/libpng/files/libpng16/1.6.39/libpng-1.6.39.tar.xz
-https://sourceforge.net/projects/freetype/files/freetype2/2.13.0/freetype-2.13.0.tar.xz
-https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.bz2
-https://github.com/libffi/libffi/releases/download/v3.4.4/libffi-3.4.4.tar.gz
-https://download.gnome.org/sources/glib/2.76/glib-2.76.1.tar.xz
-https://www.cairographics.org/releases/pixman-0.42.2.tar.gz
-https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.xz
-https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.14.2.tar.xz
-https://www.cairographics.org/releases/cairo-1.16.0.tar.xz
-https://github.com/harfbuzz/harfbuzz/releases/download/7.1.0/harfbuzz-7.1.0.tar.xz
-https://download.gnome.org/sources/pango/1.50/pango-1.50.14.tar.xz
+# https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
+# https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz
+# https://ftp.gnu.org/pub/gnu/gettext/gettext-0.21.1.tar.gz
+# https://sourceforge.net/projects/libpng/files/libpng16/1.6.39/libpng-1.6.39.tar.xz
+# https://sourceforge.net/projects/freetype/files/freetype2/2.13.0/freetype-2.13.0.tar.xz
+# https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.bz2
+# https://github.com/libffi/libffi/releases/download/v3.4.4/libffi-3.4.4.tar.gz
+# https://download.gnome.org/sources/glib/2.76/glib-2.76.1.tar.xz
+# https://www.cairographics.org/releases/pixman-0.42.2.tar.gz
+# https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.xz
+# https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.14.2.tar.xz
+# https://www.cairographics.org/releases/cairo-1.16.0.tar.xz
+# https://github.com/harfbuzz/harfbuzz/releases/download/7.1.0/harfbuzz-7.1.0.tar.xz
+# https://download.gnome.org/sources/pango/1.50/pango-1.50.14.tar.xz
 https://github.com/libsdl-org/SDL/releases/download/release-2.26.4/SDL2-2.26.4.tar.gz
+https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.4.0.tar.gz
 https://www.libsdl.org/projects/SDL_image/release/SDL2_image-2.6.3.tar.gz
-https://downloads.xiph.org/releases/ogg/libogg-1.3.5.tar.xz
-https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz
-https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.6.3/SDL2_mixer-2.6.3.tar.gz
-https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.tar.bz2
-#https://www.openssl.org/source/openssl-3.1.0.tar.gz
-#https://curl.se/download/curl-8.1.1.tar.xz
+# https://downloads.xiph.org/releases/ogg/libogg-1.3.5.tar.xz
+# https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz
+# https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.6.3/SDL2_mixer-2.6.3.tar.gz
+# https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.tar.bz2
+# https://www.openssl.org/source/openssl-3.1.0.tar.gz
+# https://curl.se/download/curl-8.1.1.tar.xz
 )
 PACKAGES=()
 
@@ -161,7 +162,11 @@ do
 done
 
 cd /home/ssarkar/wesnoth-android/android-build/src/SDL2-ndk-build
-$NDK/ndk-build
+#cd $BUILDDIR/src/SDL2-ndk-build
+webpPath=(/home/ssarkar/wesnoth-android/android-build/src/libwebp-*)
+sdl_imagePath=(/home/ssarkar/wesnoth-android/android-build/src/SDL2_image-*)
+ln -sf $webpPath $sdl_imagePath/external/libwebp
+$NDK/ndk-build SUPPORT_WEBP=true
 for lib in libs/*/*.so
 do
 	instdir=$(basename $(dirname $lib))
