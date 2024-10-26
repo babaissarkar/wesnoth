@@ -626,7 +626,7 @@ void pango_text::recalculate() const
 
 PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 {
-	PangoRectangle size;
+	PangoRectangle size = {0, 0, 0, 0};
 
 	p_font font{ get_font_families(font_class_), font_size_, font_style_ };
 	pango_layout_set_font_description(&layout, font.get());
@@ -689,18 +689,19 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 			if (mid_bounds != 0 && mid_width != 0 && mid_height != 0) {
 				PLAIN_LOG << "calling getTextBounds";
 				jstring text = env->NewStringUTF(text_.c_str());
-				jsize size = env->GetStringLength(text);
-				env->CallVoidMethod(paint, mid_bounds, text, 0, size, bounds);
+				jsize end = env->GetStringLength(text);
+				env->CallVoidMethod(paint, mid_bounds, text, 0, end, bounds);
 				env->ExceptionClear();
 				PLAIN_LOG << "getting width and height";
-				int width = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_width));
-				int height = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_height));
-				PLAIN_LOG << "Paint.getTextBounds() result: " << width << " " << height;
+				size.width = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_width));
+				size.height = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_height));
+				PLAIN_LOG << "Paint.getTextBounds() result: " << size;
 			}
 		}
 		env->PopLocalFrame(nullptr);
+	#else
+		pango_layout_get_pixel_extents(&layout, nullptr, &size);
 	#endif
-	pango_layout_get_pixel_extents(&layout, nullptr, &size);
 
 
 	PLAIN_LOG << "pango_text::" << __func__
