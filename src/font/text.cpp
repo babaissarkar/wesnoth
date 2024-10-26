@@ -13,6 +13,7 @@
 	See the COPYING file for more details.
 */
 
+#include "log.hpp"
 #define GETTEXT_DOMAIN "wesnoth-lib"
 
 #include "font/text.hpp"
@@ -36,6 +37,10 @@
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
+
+#ifdef __ANDROID__
+#include <jni.h>
+#endif
 
 static lg::log_domain log_font("font");
 #define DBG_FT LOG_STREAM(debug, log_font)
@@ -659,18 +664,52 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 		maximum_width = std::min(maximum_width, maximum_width_);
 	}
 
+	PLAIN_LOG << "pango_text::" << __func__ << " " << maximum_width_ << " " << maximum_height_;
+
 	pango_layout_set_width(&layout, maximum_width == -1
 		? -1
 		: maximum_width * PANGO_SCALE);
+
+	#ifdef __ANDROID__
+		PLAIN_LOG << "android jni textbound calculation routine";
+		JNIEnv* env = reinterpret_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
+		env->PushLocalFrame(20);
+		jclass android_paint = reinterpret_cast<jclass>(env->FindClass("android/graphics/Paint"));
+		jmethodID mid_init_paint = env->GetMethodID(android_paint, "<init>", "()V");
+		jclass android_rect = reinterpret_cast<jclass>(env->FindClass("android/graphics/Rect"));
+		jmethodID mid_init_rect = env->GetMethodID(android_rect, "<init>", "()V");
+
+		if (mid_init_paint != 0 && mid_init_rect != 0) {
+			PLAIN_LOG << "preparing objects";
+			jobject paint = env->NewObject(android_paint, mid_init_paint);
+			jobject bounds = env->NewObject(android_rect, mid_init_rect);
+			jmethodID mid_bounds = env->GetMethodID(android_paint, "getTextBounds", "(Ljava/lang/String;IILandroid/graphics/Rect;)V");
+			jmethodID mid_width = env->GetMethodID(android_rect, "width", "()I");
+			jmethodID mid_height = env->GetMethodID(android_rect, "height", "()I");
+			if (mid_bounds != 0 && mid_width != 0 && mid_height != 0) {
+				PLAIN_LOG << "calling getTextBounds";
+				jstring text = env->NewStringUTF(text_.c_str());
+				jsize size = env->GetStringLength(text);
+				env->CallVoidMethod(paint, mid_bounds, text, 0, size, bounds);
+				env->ExceptionClear();
+				PLAIN_LOG << "getting width and height";
+				int width = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_width));
+				int height = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_height));
+				PLAIN_LOG << "Paint.getTextBounds() result: " << width << " " << height;
+			}
+		}
+		env->PopLocalFrame(nullptr);
+	#endif
 	pango_layout_get_pixel_extents(&layout, nullptr, &size);
 
-	DBG_GUI_L << "pango_text::" << __func__
+
+	PLAIN_LOG << "pango_text::" << __func__
 		<< " text '" << gui2::debug_truncate(text_)
 		<< "' maximum_width " << maximum_width
 		<< " width " << size.x + size.width
 		<< ".";
 
-	DBG_GUI_L << "pango_text::" << __func__
+	PLAIN_LOG << "pango_text::" << __func__
 		<< " text '" << gui2::debug_truncate(text_)
 		<< "' font_size " << font_size_
 		<< " markedup_text " << markedup_text_
@@ -681,7 +720,7 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 		<< ".";
 
 	if(maximum_width != -1 && size.x + size.width > maximum_width) {
-		DBG_GUI_L << "pango_text::" << __func__
+		PLAIN_LOG << "pango_text::" << __func__
 			<< " text '" << gui2::debug_truncate(text_)
 			<< " ' width " << size.x + size.width
 			<< " greater as the wanted maximum of " << maximum_width
@@ -690,7 +729,7 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 
 	// The maximum height is handled here instead of using the library - see the comments in set_maximum_height()
 	if(maximum_height_ != -1 && size.y + size.height > maximum_height_) {
-		DBG_GUI_L << "pango_text::" << __func__
+		PLAIN_LOG << "pango_text::" << __func__
 			<< " text '" << gui2::debug_truncate(text_)
 			<< " ' height " << size.y + size.height
 			<< " greater as the wanted maximum of " << maximum_height_
