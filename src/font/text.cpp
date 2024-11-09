@@ -628,8 +628,9 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 {
 	PangoRectangle size = {0, 0, 0, 0};
 
-	p_font font{ get_font_families(font_class_), font_size_, font_style_ };
-	pango_layout_set_font_description(&layout, font.get());
+	// p_font font{ get_font_families(font_class_), font_size_, font_style_ };
+	// p_font font{ "Sans", font_size_, font_style_ };
+	pango_layout_set_font_description(&layout, pango_font_description_from_string("System-ui 10"));
 
 	if(font_style_ & pango_text::STYLE_UNDERLINE) {
 		PangoAttrList *attribute_list = pango_attr_list_new();
@@ -641,24 +642,24 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 	}
 
 	int maximum_width = 0;
-	if(characters_per_line_ != 0) {
-		PangoFont* f = pango_font_map_load_font(
-			pango_cairo_font_map_get_default(),
-			context_.get(),
-			font.get());
+	// if(characters_per_line_ != 0) {
+	// 	PangoFont* f = pango_font_map_load_font(
+	// 		pango_cairo_font_map_get_default(),
+	// 		context_.get(),
+	// 		font.get());
 
-		PangoFontMetrics* m = pango_font_get_metrics(f, nullptr);
+	// 	PangoFontMetrics* m = pango_font_get_metrics(f, nullptr);
 
-		int w = pango_font_metrics_get_approximate_char_width(m);
-		w *= characters_per_line_;
+	// 	int w = pango_font_metrics_get_approximate_char_width(m);
+	// 	w *= characters_per_line_;
 
-		maximum_width = ceil(pango_units_to_double(w));
+	// 	maximum_width = ceil(pango_units_to_double(w));
 
-		pango_font_metrics_unref(m);
-		g_object_unref(f);
-	} else {
+	// 	pango_font_metrics_unref(m);
+	// 	g_object_unref(f);
+	// } else {
 		maximum_width = maximum_width_;
-	}
+	// }
 
 	if(maximum_width_ != -1) {
 		maximum_width = std::min(maximum_width, maximum_width_);
@@ -666,9 +667,10 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 
 	PLAIN_LOG << "pango_text::" << __func__ << " " << maximum_width_ << " " << maximum_height_;
 
-	pango_layout_set_width(&layout, maximum_width == -1
-		? -1
-		: maximum_width * PANGO_SCALE);
+	// pango_layout_set_width(&layout, maximum_width == -1
+	// 	? -1
+	// 	: maximum_width * PANGO_SCALE);
+	pango_layout_set_width(&layout, -1);
 
 	#ifdef __ANDROID__
 		PLAIN_LOG << "android jni textbound calculation routine";
@@ -699,9 +701,11 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 			}
 		}
 		env->PopLocalFrame(nullptr);
-	#else
-		pango_layout_get_pixel_extents(&layout, nullptr, &size);
 	#endif
+	// pango_layout_get_extents(&layout, nullptr, &size);
+	// PLAIN_LOG << __LINE__ << " " << size;
+	// pango_layout_get_pixel_extents(&layout, nullptr, &size);
+	PLAIN_LOG << "pango_text::" << __func__ << " " << size;
 
 
 	PLAIN_LOG << "pango_text::" << __func__
@@ -802,11 +806,12 @@ void pango_text::render(PangoLayout& layout, const SDL_Rect& viewport, const uns
 {
 	cairo_format_t format = CAIRO_FORMAT_ARGB32;
 	
-	PLAIN_LOG << viewport;
+	PLAIN_LOG << __func__ << " viewport: " << viewport << " stride: " << stride;
 
 	uint8_t* buffer = &surface_buffer_[0];
 
-	PLAIN_LOG << "text: " << pango_layout_get_text(&layout);
+	PLAIN_LOG << __func__ << " text: " << pango_layout_get_text(&layout);
+	
 	std::unique_ptr<cairo_surface_t, std::function<void(cairo_surface_t*)>> cairo_surface(
 		cairo_image_surface_create_for_data(buffer, format, viewport.w, viewport.h, stride), cairo_surface_destroy);
 	std::unique_ptr<cairo_t, std::function<void(cairo_t*)>> cr(cairo_create(cairo_surface.get()), cairo_destroy);

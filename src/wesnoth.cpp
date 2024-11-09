@@ -804,7 +804,7 @@ static int do_gameloop(const std::vector<std::string>& args)
 	const gui2::event::manager gui_event_manager;
 	
 	// Test
-//	gui2::show_message(_("Test"), "Message", gui2::dialogs::message::ok_button);
+	gui2::show_message(_("Test"), "Message", gui2::dialogs::message::ok_button);
 
 	// if the log directory is writable, then there's no issue.
 	// if the optional isn't set, then logging to file has been disabled, so there's no issue.
