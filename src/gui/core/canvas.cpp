@@ -426,7 +426,6 @@ text_shape::text_shape(const config& cfg, wfl::action_function_symbol_table& fun
 
 void text_shape::draw(wfl::map_formula_callable& variables)
 {
-#if false
 	assert(variables.has_key("text"));
 
 	// We first need to determine the size of the text which need the rendered
@@ -439,6 +438,7 @@ void text_shape::draw(wfl::map_formula_callable& variables)
 		return;
 	}
 
+#if false
 	font::pango_text& text_renderer = font::get_text_renderer();
 	text_renderer.clear_attribute_list();
 
@@ -509,13 +509,75 @@ void text_shape::draw(wfl::map_formula_callable& variables)
 				: PANGO_ELLIPSIZE_END)
 		.set_characters_per_line(characters_per_line_)
 		.set_add_outline(outline_(variables));
+#endif
+	// Create a temporary Cairo surface to measure text dimensions
+    cairo_surface_t* temp_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 0, 0);
+    cairo_t* temp_cr = cairo_create(temp_surface);
 
+    // Create a Pango layout and set the text and font description
+    PangoLayout* layout = pango_cairo_create_layout(temp_cr);
+    pango_layout_set_text(layout, text.c_str(), -1);
+    PangoFontDescription* font = pango_font_description_from_string("Sans");
+    pango_layout_set_font_description(layout, font);
+    pango_font_description_free(font);
+
+    // Get text dimensions
+    int width, height;
+    pango_layout_get_size(layout, &width, &height);
+    width /= PANGO_SCALE;
+    height /= PANGO_SCALE;
+
+    // Clean up temporary surface and context
+    g_object_unref(layout);
+    cairo_destroy(temp_cr);
+    cairo_surface_destroy(temp_surface);
+
+    // Add padding to the calculated width and height
+    int padding = 0;
+    width += padding * 2;
+    height += padding * 2;
+
+    // Create a new Cairo surface with the calculated dimensions
+    cairo_surface_t* cairo_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+    cairo_t* cr = cairo_create(cairo_surface);
+
+    // Create a new Pango layout for the actual drawing
+    layout = pango_cairo_create_layout(cr);
+    pango_layout_set_text(layout, text.c_str(), -1);
+    font = pango_font_description_from_string("Sans");
+    pango_layout_set_font_description(layout, font);
+    pango_font_description_free(font);
+
+    // Set text color (e.g., white)
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+
+    // Render the text centered in the padded surface
+    cairo_move_to(cr, padding, padding);
+    pango_cairo_show_layout(cr, layout);
+
+    // Copy pixel data from Cairo to SDL surface
+    SDL_Surface* sdl_surface = SDL_CreateRGBSurface(0, width, height, 32,
+        0x00FF0000,   // Red mask
+        0x0000FF00,   // Green mask
+        0x000000FF,   // Blue mask
+        0xFF000000    // Alpha mask
+    );
+    
+    PLAIN_LOG << __func__ << " rendering " << text.str();
+
+    unsigned char* cairo_data = cairo_image_surface_get_data(cairo_surface);
+    memcpy(sdl_surface->pixels, cairo_data, width * height * 4);
+
+    // Cleanup Cairo and Pango resources
+    g_object_unref(layout);
+    cairo_destroy(cr);
+    cairo_surface_destroy(cairo_surface);
+    
 	wfl::map_formula_callable local_variables(variables);
-	const auto [tw, th] = text_renderer.get_size();
 
 	// Translate text width and height back to draw-space, rounding up.
-	local_variables.add("text_width", wfl::variant(tw));
-	local_variables.add("text_height", wfl::variant(th));
+	local_variables.add("text_width", wfl::variant(width));
+	local_variables.add("text_height", wfl::variant(height));
 
 	if (variables.has_key("fake_draw") && variables.query_value("fake_draw").as_bool()) {
 		variables.add("text_width", wfl::variant(tw));
@@ -542,7 +604,7 @@ void text_shape::draw(wfl::map_formula_callable& variables)
 	dst_rect.h = std::min(dst_rect.h, tex.h());
 
 	draw::blit(tex, dst_rect);
-#endif
+
 }
 
 /***** ***** ***** ***** ***** CANVAS ***** ***** ***** ***** *****/
