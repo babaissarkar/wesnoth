@@ -61,14 +61,14 @@ bool load_font_config()
 	try {
 		const auto cfg_path = filesystem::get_wml_location("hardwired/fonts.cfg");
 		if(!cfg_path) {
-			ERR_FT << "could not resolve path to fonts.cfg, file not found";
+			PLAIN_LOG << "could not resolve path to fonts.cfg, file not found";
 			return false;
 		}
 
 		filesystem::scoped_istream stream = preprocess_file(cfg_path.value());
 		read(cfg, *stream);
 	} catch(const config::error &e) {
-		ERR_FT << "could not read fonts.cfg:\n" << e.message;
+		PLAIN_LOG << "could not read fonts.cfg:\n" << e.message;
 		return false;
 	}
 
@@ -82,17 +82,17 @@ bool load_font_config()
 	family_order_script = fonts_config["family_order_script"];
 
 	if(family_order_mono.empty()) {
-		ERR_FT << "No monospace font family order defined, falling back to sans serif order";
+		PLAIN_LOG << "No monospace font family order defined, falling back to sans serif order";
 		family_order_mono = family_order_sans;
 	}
 
 	if(family_order_light.empty()) {
-		ERR_FT << "No light font family order defined, falling back to sans serif order";
+		PLAIN_LOG << "No light font family order defined, falling back to sans serif order";
 		family_order_light = family_order_sans;
 	}
 
 	if(family_order_script.empty()) {
-		ERR_FT << "No script font family order defined, falling back to sans serif order";
+		PLAIN_LOG << "No script font family order defined, falling back to sans serif order";
 		family_order_script = family_order_sans;
 	}
 
@@ -119,11 +119,15 @@ const t_string& get_font_families(family_class fclass)
 
 manager::manager()
 {
-	std::string font_path = game_config::path + "/fonts";
+	#ifdef __ANDROID__
+		std::string font_path = "/storage/emulated/0/Android/data/org.wesnoth.Wesnoth/files/gamedata/fonts";
+	#else
+		std::string font_path = game_config::path + "/fonts";
+	#endif
 	if (!FcConfigAppFontAddDir(FcConfigGetCurrent(),
 		reinterpret_cast<const FcChar8 *>(font_path.c_str())))
 	{
-		ERR_FT << "Could not load the true type fonts";
+		PLAIN_LOG << "Could not load the true type fonts";
 		throw font::error("font config lib failed to add the font path: '" + font_path + "'");
 	}
 
@@ -142,7 +146,7 @@ manager::manager()
 							 reinterpret_cast<const FcChar8*>(font_file_contents.c_str()),
 							 FcFalse))
 	{
-		ERR_FT << "Could not load local font configuration";
+		PLAIN_LOG << "Could not load local font configuration";
 		throw font::error("font config lib failed to find font.conf: '" + font_file + "'");
 	}
 	else
