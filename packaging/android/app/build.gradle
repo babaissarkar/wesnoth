@@ -3,12 +3,13 @@ plugins {
 }
 
 android {
+    namespace 'org.wesnoth.Wesnoth'
     compileSdk 33
 
     defaultConfig {
         applicationId "org.wesnoth.Wesnoth"
         minSdk 23
-        targetSdk 34
+        targetSdk 33
         versionCode 1
         versionName "1.19"
     }
@@ -23,7 +24,6 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    buildToolsVersion '33.0.0'
     
     splits {
         abi {
