@@ -438,7 +438,6 @@ void text_shape::draw(wfl::map_formula_callable& variables)
 		return;
 	}
 
-#if false
 	font::pango_text& text_renderer = font::get_text_renderer();
 	text_renderer.clear_attribute_list();
 
@@ -509,7 +508,8 @@ void text_shape::draw(wfl::map_formula_callable& variables)
 				: PANGO_ELLIPSIZE_END)
 		.set_characters_per_line(characters_per_line_)
 		.set_add_outline(outline_(variables));
-#endif
+
+#if 0
 	// Create a temporary Cairo surface to measure text dimensions
     cairo_surface_t* temp_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 0, 0);
     cairo_t* temp_cr = cairo_create(temp_surface);
@@ -572,12 +572,20 @@ void text_shape::draw(wfl::map_formula_callable& variables)
     g_object_unref(layout);
     cairo_destroy(cr);
     cairo_surface_destroy(cairo_surface);
+#endif
     
 	wfl::map_formula_callable local_variables(variables);
+	
+	const auto [tw, th] = text_renderer.get_size();
 
 	// Translate text width and height back to draw-space, rounding up.
-	local_variables.add("text_width", wfl::variant(width));
-	local_variables.add("text_height", wfl::variant(height));
+	local_variables.add("text_width", wfl::variant(tw));
+	local_variables.add("text_height", wfl::variant(th));
+
+
+	// Translate text width and height back to draw-space, rounding up.
+//	local_variables.add("text_width", wfl::variant(width));
+//	local_variables.add("text_height", wfl::variant(height));
 
 	if (variables.has_key("fake_draw") && variables.query_value("fake_draw").as_bool()) {
 		variables.add("text_width", wfl::variant(tw));
