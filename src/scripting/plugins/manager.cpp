@@ -45,7 +45,7 @@ plugins_manager::plugins_manager(application_lua_kernel * kernel)
 	, playing_()
 	, kernel_(kernel)
 {
-	assert(!singleton);
+//	assert(!singleton);
 	singleton = this;
 
 	kernel_->load_core();

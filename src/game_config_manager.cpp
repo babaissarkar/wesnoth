@@ -100,7 +100,6 @@ game_config_manager* game_config_manager::get()
 
 bool game_config_manager::init_game_config(FORCE_RELOAD_CONFIG force_reload)
 {
-	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	// Add preproc defines according to the command line arguments.
 	game_config::scoped_preproc_define multiplayer("MULTIPLAYER", cmdline_opts_.multiplayer);
 	game_config::scoped_preproc_define test("TEST", cmdline_opts_.test.has_value());
@@ -109,34 +108,30 @@ bool game_config_manager::init_game_config(FORCE_RELOAD_CONFIG force_reload)
 	game_config::scoped_preproc_define title_screen("TITLE_SCREEN",
 		!cmdline_opts_.multiplayer && !cmdline_opts_.test && !cmdline_opts_.editor);
 
-	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	game_config::reset_color_info();
 
 	load_game_config_with_loadscreen(force_reload, nullptr, "");
-	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 	game_config::load_config(game_config().mandatory_child("game_config"));
-	
-	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 	// It's necessary to block the event thread while load_hotkeys() runs, otherwise keyboard input
 	// can cause a crash by accessing the list of hotkeys while it's being modified.
-//	events::call_in_main_thread([this]() { //FIXME causes crash, log-290924.txt
+	events::call_in_main_thread([this]() {
 		const hotkey::scope_changer hk_scope{hotkey::scope_main, false};
-
 		// Load the standard hotkeys, then apply any player customizations.
 		hotkey::load_default_hotkeys(game_config());
 		prefs::get().load_hotkeys();
-	// });
+	});
 
-	prefs::get().load_advanced_prefs(game_config());
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
+	// prefs::get().load_advanced_prefs(game_config());
 
 	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	::init_textdomains(game_config());
 	about::set_about(game_config());
 	ai::configuration::init(game_config());
 	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
-	
+
 	return true;
 }
 
@@ -159,7 +154,7 @@ void game_config_manager::load_game_config_with_loadscreen(
 	if(!lg::info().dont_log(log_config)) {
 		auto out = formatter();
 		out << "load_game_config: defines:";
-		
+
 		PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 		for(const auto& pair : cache_.get_preproc_map()) {
@@ -169,14 +164,14 @@ void game_config_manager::load_game_config_with_loadscreen(
 		out << "\n";
 		FORCE_LOG_TO(lg::info(), log_config) << out.str();
 	}
-	
+
 	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 	game_config::scoped_preproc_define debug_mode("DEBUG_MODE",
 		game_config::debug || game_config::mp_debug);
 
 	bool reload_everything = true;
-	
+
 	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 	// Game_config already holds requested config in memory.
@@ -196,7 +191,7 @@ void game_config_manager::load_game_config_with_loadscreen(
 //		load_game_config(reload_everything, classification, scenario_id);
 //	});
 	load_game_config(reload_everything, classification, scenario_id);
-	
+
 	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 }
 

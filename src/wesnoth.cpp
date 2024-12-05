@@ -53,7 +53,6 @@
 #include "game_version.hpp"        // for version_info
 #include "video.hpp"          // for video::error and video::quit
 #include "wesconfig.h"        // for PACKAGE
-#include "widgets/button.hpp" // for button
 #include "wml_exception.hpp"  // for wml_exception
 
 #include "utils/spritesheet_generator.hpp"
@@ -375,6 +374,8 @@ static int process_command_args(commandline_options& cmdline_opts)
 		filesystem::set_user_data_dir(std::string());
 	}
 
+	PLAIN_LOG << __LINE__ << "datadir " << game_config::path;
+
 	// userdata is initialized, so initialize logging to file if enabled
 	// If true, output will be redirected to file, else output be written to console.
 	// On Windows, if Wesnoth was not started from a console, one will be allocated.
@@ -413,6 +414,8 @@ static int process_command_args(commandline_options& cmdline_opts)
 	}
 #endif
 
+	PLAIN_LOG << __LINE__ << "datadir " << game_config::path;
+
 	if(cmdline_opts.log) {
 		for(const auto& log_pair : *cmdline_opts.log) {
 			const std::string log_domain = log_pair.second;
@@ -431,21 +434,25 @@ static int process_command_args(commandline_options& cmdline_opts)
 	}
 
 	if(cmdline_opts.usercache_path) {
-		std::cout << filesystem::get_cache_dir();
+		PLAIN_LOG << filesystem::get_cache_dir();
 		return 0;
 	}
 
 	if(cmdline_opts.userdata_path) {
-		std::cout << filesystem::get_user_data_dir();
+		PLAIN_LOG << filesystem::get_user_data_dir();
 		return 0;
 	}
+
+	PLAIN_LOG << __LINE__ << "datadir";
 
 	if(cmdline_opts.data_dir) {
 		game_config::path = filesystem::normalize_path(*cmdline_opts.data_dir, true, true);
 		if(!cmdline_opts.nobanner) {
 			PLAIN_LOG << "Overriding data directory with '" << game_config::path << "'";
 		}
+		PLAIN_LOG << __LINE__ << "datadir " << game_config::path;
 	} else {
+		PLAIN_LOG << __LINE__ << "datadir " << game_config::path;
 		// if a pre-defined path does not exist this will empty it
 		game_config::path = filesystem::normalize_path(game_config::path, true, true);
 		if(game_config::path.empty()) {
@@ -461,6 +468,7 @@ static int process_command_args(commandline_options& cmdline_opts)
 				return 1;
 			}
 		}
+		PLAIN_LOG << __LINE__ << "datadir " << game_config::path;
 	}
 
 	if(!filesystem::is_directory(game_config::path)) {
@@ -615,6 +623,8 @@ static int process_command_args(commandline_options& cmdline_opts)
 		PLAIN_LOG << "That --preprocess-* option is only supported when using --preprocess or --validate.";
 		return 2;
 	}
+
+	PLAIN_LOG << __LINE__ << "datadir " << game_config::path;
 
 	// Not the most intuitive solution, but I wanted to leave current semantics for now
 	return -1;
@@ -801,7 +811,7 @@ static int do_gameloop(commandline_options& cmdline_opts)
 	const gui2::event::manager gui_event_manager;
 
 	// Test
-	gui2::show_message(_("Test"), "Message", gui2::dialogs::message::ok_button);
+	// gui2::show_message(_("Test"), "Message", gui2::dialogs::message::ok_button);
 
 	// if the log directory is writable, then there's no issue.
 	// if the optional isn't set, then logging to file has been disabled, so there's no issue.
@@ -818,19 +828,10 @@ static int do_gameloop(commandline_options& cmdline_opts)
 		game_config::check_migration = false;
 		migrate_version_selection::execute();
 	}
-<<<<<<< HEAD
 
 	loading_screen::display([&res, &config_manager, &cmdline_opts]() {
 		loading_screen::progress(loading_stage::load_config);
-=======
 
-	PLAIN_LOG << __LINE__ << "checkpoint";
-
-//	gui2::dialogs::loading_screen::display([&res, &config_manager, &cmdline_opts]() {
-//		gui2::dialogs::loading_screen::progress(loading_stage::load_config);
-//		loading_stage::load_config();
-		PLAIN_LOG << "initialize game config";
->>>>>>> 8fb009b2936 (temporary debug changes)
 		res = config_manager.init_game_config(game_config_manager::NO_FORCE_RELOAD);
 
 		if(res == false) {
@@ -839,8 +840,8 @@ static int do_gameloop(commandline_options& cmdline_opts)
 		}
 
 		loading_screen::progress(loading_stage::init_fonts);
-
 		res = font::load_font_config();
+
 		if(res == false) {
 			PLAIN_LOG << "could not re-initialize fonts for the current language";
 			return 1;
@@ -852,7 +853,9 @@ static int do_gameloop(commandline_options& cmdline_opts)
 
 			refresh_addon_version_info_cache();
 		}
-//	});
+
+		return 0;
+	});
 
 	if(res == false) {
 		return 1;
@@ -1066,6 +1069,12 @@ int main(int argc, char** argv)
 	setenv("PANGOCAIRO_BACKEND", "fontconfig", 0);
 #endif
 
+#ifdef __ANDROID__
+	putenv("PANGOCAIRO_BACKEND=fontconfig");
+	putenv("FONTCONFIG_PATH=/storage/emulated/0/Android/data/org.wesnoth.Wesnoth/files/gamedata/fonts");
+	game_config::path = SDL_AndroidGetExternalStoragePath() + std::string("/gamedata");
+#endif
+
 	// write_to_log_file means that writing to the log file will be done, if true.
 	// if false, output will be written to the terminal
 	// on windows, if wesnoth was not started from a console, then it will allocate one
@@ -1161,14 +1170,11 @@ int main(int argc, char** argv)
 
 	SDL_StartTextInput();
 
-//	#ifdef __ANDROID__
-//		nobanner = false;
-//	#endif
-
 	try {
 		commandline_options cmdline_opts = commandline_options(args);
 		int finished = process_command_args(cmdline_opts);
 
+#ifndef __ANDROID__
 		if(std::string exe_dir = filesystem::get_exe_dir(); !exe_dir.empty()) {
 			if(std::string auto_dir = autodetect_game_data_dir(std::move(exe_dir)); !auto_dir.empty()) {
 				if(!nobanner) {
@@ -1183,14 +1189,17 @@ int main(int argc, char** argv)
 						break;
 					}
 				}
+
 				if (!data_dir_specified) {
 					PLAIN_LOG << "Cannot find a data directory. Specify one with --data-dir";
 					return 1;
 				}
 			}
-#endif
 			safe_exit(finished);
 		}
+#endif
+
+		PLAIN_LOG << __LINE__ << "checkpoint";
 
 		SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
 		// Is there a reason not to just use SDL_INIT_EVERYTHING?
