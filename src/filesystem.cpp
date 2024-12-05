@@ -673,8 +673,6 @@ static void setup_user_data_dir()
 
 #ifdef __ANDROID__
 	user_data_dir = bfs::path(SDL_AndroidGetExternalStoragePath());
-//	user_data_dir = bfs::path("/storage/emulated/0/wesnoth/userdata");
-	PLAIN_LOG << __FUNCTION__ << " " << user_data_dir;
 #endif
 
 	if(!file_exists(user_data_dir / "logs")) {
@@ -752,76 +750,6 @@ void set_user_data_dir(std::string newprefdir)
 		} else {
 			newprefdir = "~/.wesnoth" + get_version_path_suffix();
 		}
-
-		PWSTR docs_path = nullptr;
-		HRESULT res = SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_CREATE, nullptr, &docs_path);
-
-		if(res != S_OK) {
-			//
-			// Crummy fallback path full of pain and suffering.
-			//
-			ERR_FS << "Could not determine path to user's Documents folder! (" << std::hex << "0x" << res << std::dec << ") "
-				   << "User config/data directories may be unavailable for "
-				   << "this session. Please report this as a bug.";
-			user_data_dir = bfs::path(get_cwd()) / newprefdir;
-		} else {
-			bfs::path games_path = bfs::path(docs_path) / "My Games";
-			create_directory_if_missing(games_path);
-
-			user_data_dir = games_path / newprefdir;
-		}
-
-		CoTaskMemFree(docs_path);
-	}
-
-#else /*_WIN32*/
-
-	std::string backupprefdir = ".wesnoth" + get_version_path_suffix();
-
-#ifdef WESNOTH_BOOST_OS_IOS
-	char *sdl_pref_path = SDL_GetPrefPath("wesnoth.org", "iWesnoth");
-	if(sdl_pref_path) {
-		backupprefdir = std::string(sdl_pref_path) + backupprefdir;
-		SDL_free(sdl_pref_path);
-	}
-#endif
-
-#ifdef _X11
-	const char* home_str = getenv("HOME");
-
-	if(newprefdir.empty()) {
-		char const* xdg_data = getenv("XDG_DATA_HOME");
-		if(!xdg_data || xdg_data[0] == '\0') {
-			if(!home_str) {
-				newprefdir = backupprefdir;
-				goto other;
-			}
-
-			user_data_dir = home_str;
-			user_data_dir /= ".local/share";
-		} else {
-			user_data_dir = xdg_data;
-		}
-
-		user_data_dir /= "wesnoth";
-		user_data_dir /= get_version_path_suffix();
-	} else {
-	other:
-		bfs::path home = home_str ? home_str : ".";
-
-		if(newprefdir[0] == '/') {
-			user_data_dir = newprefdir;
-		} else {
-			if(!relative_ok) {
-				// TRANSLATORS: translate the part inside <...> only
-				deprecated_message(_("--userdata-dir=<relative path>"),
-					DEP_LEVEL::FOR_REMOVAL,
-					{1, 17, 0},
-					_("Use absolute paths. Relative paths are deprecated because they are interpreted relative to $HOME"));
-			}
-			user_data_dir = home / newprefdir;
-		}
-	}
 #else
 		const char* h = std::getenv("HOME");
 		std::string home = h ? h : "";
@@ -901,6 +829,12 @@ void set_cache_dir(const std::string& newcachedir)
 
 static const bfs::path& get_user_data_path()
 {
+	#ifdef __ANDROID__
+	if (user_data_dir.empty()) {
+		user_data_dir = bfs::path(SDL_AndroidGetExternalStoragePath());
+		PLAIN_LOG << "Setting android userdata path: " << SDL_AndroidGetExternalStoragePath();
+	}
+	#endif
 	assert(!user_data_dir.empty() && "Attempted to access userdata location before userdata initialization!");
 	return user_data_dir;
 }
@@ -1744,33 +1678,34 @@ utils::optional<std::string> get_wml_location(const std::string& path, const uti
 	bfs::path fpath(path);
 	bfs::path result;
 
-	if(filename[0] == '~') {
-		result /= get_user_data_path() / "data" / filename.substr(1);
-		PLAIN_LOG << "  trying '" << result.string() << "'";
+	if(path[0] == '~') {
+		result = get_user_data_path() / "data" / path.substr(1);
+		DBG_FS << "  trying '" << result.string() << "'";
 	} else if(*fpath.begin() == ".") {
-		if(!current_dir.empty()) {
-			result /= bfs::path(current_dir);
-			PLAIN_LOG << "  trying '" << result.string() << "'";
-		} else {
-			result /= bfs::path(game_config::path) / "data";
-			PLAIN_LOG << "  trying '" << result.string() << "'";
+		if (!current_dir) {
+			WRN_FS << "Cannot resolve " << path << " since the current directory is unknown!";
+			return utils::nullopt;
 		}
-
-		result /= filename;
-		PLAIN_LOG << "  trying '" << result.string() << "'";
-	} else if(!game_config::path.empty()) {
-		result /= bfs::path(game_config::path) / "data" / filename;
-		PLAIN_LOG << "  trying '" << result.string() << "'";
+		result = bfs::path(*current_dir) / path;
+		error_code ec;
+		bfs::path c = bfs::canonical(result, ec);
+		if (!is_prefix(c, bfs::path(game_config::path) / "data") && !is_prefix(c, get_user_data_path() / "data")) {
+			WRN_FS << "Resolved path " << c << " is outside game and user data directories!";
+		}
+	} else {
+		if(game_config::path.empty()) {
+			WRN_FS << "Cannot resolve " << path << " since the game data directory is unknown!";
+			return utils::nullopt;
+		}
+		result = bfs::path(game_config::path) / "data" / path;
 	}
 
-	if(result.empty()) {
-		PLAIN_LOG << filename << " not found";
-		result.clear();
-	} else if (!file_exists(result)) {
-		PLAIN_LOG << filename << " does not exist";
-		result.clear();
+	if(!file_exists(result)) {
+		DBG_FS << "  not found";
+		return utils::nullopt;
 	} else {
-		PLAIN_LOG << filename << " found: '" << result.string() << "'";
+		DBG_FS << "  found: '" << result.string() << "'";
+		return result.string();
 	}
 }
 

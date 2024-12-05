@@ -334,7 +334,7 @@ static surface load_image_file(const image::locator& loc)
 	const std::string& name = loc.get_filename();
 
 	auto location = filesystem::get_binary_file_location("images", name);
-	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " filename: " << name << " path: " << location;
+	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " filename: " << name << " path: " << location.value();
 
 	// Many images have been converted from PNG to WEBP format,
 	// but the old filename may still be saved in savegame files etc.
@@ -371,7 +371,7 @@ static surface load_image_file(const image::locator& loc)
 	}
 
 	if(!res && !name.empty()) {
-		PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " filename: " << name << " path: " << location;
+		PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " filename: " << name << " path: " << location.value();
 		ERR_IMG << "could not open image '" << name << "'";
 		if(game_config::debug && name != game_config::images::missing)
 			return get_surface(game_config::images::missing, UNSCALED);

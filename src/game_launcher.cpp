@@ -115,10 +115,6 @@ game_launcher::game_launcher(const commandline_options& cmdline_opts)
 	bool no_music = false;
 	bool no_sound = false;
 
-#ifdef __ANDROID__
-//		game_config::path = SDL_AndroidGetInternalStoragePath();
-		game_config::path = SDL_AndroidGetExternalStoragePath() + std::string("/gamedata");
-#else
 	// The path can be hardcoded and it might be a relative path.
 	if(!game_config::path.empty() &&
 	#ifdef _WIN32
@@ -135,7 +131,6 @@ game_launcher::game_launcher(const commandline_options& cmdline_opts)
 		font_manager_.~manager();
 		new (&font_manager_) font::manager();
 	}
-#endif
 
 	if(cmdline_opts_.core_id) {
 		prefs::get().set_core(*cmdline_opts_.core_id);

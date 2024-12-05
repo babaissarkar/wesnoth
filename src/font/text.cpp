@@ -748,9 +748,9 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 {
 	PangoRectangle size = {0, 0, 0, 0};
 
-	// p_font font{ get_font_families(font_class_), font_size_, font_style_ };
+	p_font font{ get_font_families(font_class_), font_size_, font_style_ };
 	// p_font font{ "Sans", font_size_, font_style_ };
-	pango_layout_set_font_description(&layout, pango_font_description_from_string("System-ui 10"));
+//	pango_layout_set_font_description(&layout, pango_font_description_from_string("System-ui 10"));
 
 	if(font_style_ & pango_text::STYLE_UNDERLINE) {
 		PangoAttrList *attribute_list = pango_attr_list_new();
@@ -762,24 +762,24 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 	}
 
 	int maximum_width = 0;
-	// if(characters_per_line_ != 0) {
-	// 	PangoFont* f = pango_font_map_load_font(
-	// 		pango_cairo_font_map_get_default(),
-	// 		context_.get(),
-	// 		font.get());
+	 if(characters_per_line_ != 0) {
+	 	PangoFont* f = pango_font_map_load_font(
+	 		pango_cairo_font_map_get_default(),
+	 		context_.get(),
+	 		font.get());
 
-	// 	PangoFontMetrics* m = pango_font_get_metrics(f, nullptr);
+	 	PangoFontMetrics* m = pango_font_get_metrics(f, nullptr);
 
-	// 	int w = pango_font_metrics_get_approximate_char_width(m);
-	// 	w *= characters_per_line_;
+	 	int w = pango_font_metrics_get_approximate_char_width(m);
+	 	w *= characters_per_line_;
 
-	// 	maximum_width = ceil(pango_units_to_double(w));
+	 	maximum_width = ceil(pango_units_to_double(w));
 
-	// 	pango_font_metrics_unref(m);
-	// 	g_object_unref(f);
-	// } else {
+	 	pango_font_metrics_unref(m);
+	 	g_object_unref(f);
+	 } else {
 		maximum_width = maximum_width_;
-	// }
+	 }
 
 	if(maximum_width_ != -1) {
 		maximum_width = std::min(maximum_width, maximum_width_);
@@ -787,44 +787,44 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 
 	PLAIN_LOG << "pango_text::" << __func__ << " " << maximum_width_ << " " << maximum_height_;
 
-	// pango_layout_set_width(&layout, maximum_width == -1
-	// 	? -1
-	// 	: maximum_width * PANGO_SCALE);
+	 pango_layout_set_width(&layout, maximum_width == -1
+	 	? -1
+	 	: maximum_width * PANGO_SCALE);
 	pango_layout_set_width(&layout, -1);
 
 	#ifdef __ANDROID__
-		PLAIN_LOG << "android jni textbound calculation routine";
-		JNIEnv* env = reinterpret_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
-		env->PushLocalFrame(20);
-		jclass android_paint = reinterpret_cast<jclass>(env->FindClass("android/graphics/Paint"));
-		jmethodID mid_init_paint = env->GetMethodID(android_paint, "<init>", "()V");
-		jclass android_rect = reinterpret_cast<jclass>(env->FindClass("android/graphics/Rect"));
-		jmethodID mid_init_rect = env->GetMethodID(android_rect, "<init>", "()V");
+//		PLAIN_LOG << "android jni textbound calculation routine";
+//		JNIEnv* env = reinterpret_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
+//		env->PushLocalFrame(20);
+//		jclass android_paint = reinterpret_cast<jclass>(env->FindClass("android/graphics/Paint"));
+//		jmethodID mid_init_paint = env->GetMethodID(android_paint, "<init>", "()V");
+//		jclass android_rect = reinterpret_cast<jclass>(env->FindClass("android/graphics/Rect"));
+//		jmethodID mid_init_rect = env->GetMethodID(android_rect, "<init>", "()V");
 
-		if (mid_init_paint != 0 && mid_init_rect != 0) {
-			PLAIN_LOG << "preparing objects";
-			jobject paint = env->NewObject(android_paint, mid_init_paint);
-			jobject bounds = env->NewObject(android_rect, mid_init_rect);
-			jmethodID mid_bounds = env->GetMethodID(android_paint, "getTextBounds", "(Ljava/lang/String;IILandroid/graphics/Rect;)V");
-			jmethodID mid_width = env->GetMethodID(android_rect, "width", "()I");
-			jmethodID mid_height = env->GetMethodID(android_rect, "height", "()I");
-			if (mid_bounds != 0 && mid_width != 0 && mid_height != 0) {
-				PLAIN_LOG << "calling getTextBounds";
-				jstring text = env->NewStringUTF(text_.c_str());
-				jsize end = env->GetStringLength(text);
-				env->CallVoidMethod(paint, mid_bounds, text, 0, end, bounds);
-				env->ExceptionClear();
-				PLAIN_LOG << "getting width and height";
-				size.width = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_width));
-				size.height = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_height));
-				PLAIN_LOG << "Paint.getTextBounds() result: " << size;
-			}
-		}
-		env->PopLocalFrame(nullptr);
+//		if (mid_init_paint != 0 && mid_init_rect != 0) {
+//			PLAIN_LOG << "preparing objects";
+//			jobject paint = env->NewObject(android_paint, mid_init_paint);
+//			jobject bounds = env->NewObject(android_rect, mid_init_rect);
+//			jmethodID mid_bounds = env->GetMethodID(android_paint, "getTextBounds", "(Ljava/lang/String;IILandroid/graphics/Rect;)V");
+//			jmethodID mid_width = env->GetMethodID(android_rect, "width", "()I");
+//			jmethodID mid_height = env->GetMethodID(android_rect, "height", "()I");
+//			if (mid_bounds != 0 && mid_width != 0 && mid_height != 0) {
+//				PLAIN_LOG << "calling getTextBounds";
+//				jstring text = env->NewStringUTF(text_.c_str());
+//				jsize end = env->GetStringLength(text);
+//				env->CallVoidMethod(paint, mid_bounds, text, 0, end, bounds);
+//				env->ExceptionClear();
+//				PLAIN_LOG << "getting width and height";
+//				size.width = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_width));
+//				size.height = reinterpret_cast<int>(env->CallIntMethod(bounds, mid_height));
+//				PLAIN_LOG << "Paint.getTextBounds() result: " << size;
+//			}
+//		}
+//		env->PopLocalFrame(nullptr);
 	#endif
 	// pango_layout_get_extents(&layout, nullptr, &size);
 	// PLAIN_LOG << __LINE__ << " " << size;
-	// pango_layout_get_pixel_extents(&layout, nullptr, &size);
+	pango_layout_get_pixel_extents(&layout, nullptr, &size);
 	PLAIN_LOG << "pango_text::" << __func__ << " " << size;
 
 
