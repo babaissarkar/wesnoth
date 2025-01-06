@@ -23,10 +23,9 @@
 #include "gui/dialogs/message.hpp"
 #include "gui/widgets/listbox.hpp"
 #include "gui/widgets/button.hpp"
-#include "gui/widgets/image.hpp"
 #include "gui/widgets/label.hpp"
 #include "gui/widgets/menu_button.hpp"
-#include "gui/widgets/styled_widget.hpp"
+#include "gui/widgets/stacked_widget.hpp"
 #include "gui/widgets/text_box.hpp"
 #include "gui/widgets/toggle_button.hpp"
 #include "gui/widgets/unit_preview_pane.hpp"
@@ -75,7 +74,6 @@ units_dialog::units_dialog()
 	, variation_()
 	, filter_options_()
 	, last_words_()
-	, gender_toggle_()
 {
 }
 
@@ -126,19 +124,35 @@ void units_dialog::pre_show()
 	text_box& filter = find_widget<text_box>("filter_box");
 	connect_signal_notify_modified(filter, std::bind(&units_dialog::filter_text_changed, this));
 
-	listbox& list = find_widget<listbox>("main_list");
-	connect_signal_notify_modified(list, std::bind(&units_dialog::list_item_clicked, this));
+	stacked_widget& view = find_widget<stacked_widget>("main_view");
+	view.select_layer(1);
 
+	view_toggle_.add_member(&find_widget<toggle_button>("list_toggle"), view_mode::LIST);
+	view_toggle_.add_member(&find_widget<toggle_button>("grid_toggle"), view_mode::GRID);
+	view_toggle_.set_member_states(view_mode::LIST);
+	view_toggle_.set_callback_on_value_change([&](widget& /*w*/, const view_mode& mode){
+		switch(mode) {
+			case view_mode::LIST:
+				view.select_layer(1);
+				break;
+			case view_mode::GRID:
+				view.select_layer(0);
+				break;
+		}
+		show_list();
+		list_item_clicked();
+		invalidate_layout();
+		// add_to_keyboard_chain(&view.find_widget<listbox>("main_list"));
+	});
+
+	connect_signal_notify_modified(
+		find_widget<listbox>("main_list"),
+		std::bind(&units_dialog::list_item_clicked, this));
 	connect_signal_mouse_left_click(
 		find_widget<button>("show_help"),
 		std::bind(&units_dialog::show_help, this));
 
-	list.clear();
-
 	keyboard_capture(&filter);
-	add_to_keyboard_chain(&list);
-
-	show_list(list);
 
 	find_widget<label>("title").set_label(title_);
 	find_widget<button>("ok").set_label(ok_label_);
@@ -146,13 +160,19 @@ void units_dialog::pre_show()
 	find_widget<button>("dismiss").set_visible(false);
 	find_widget<button>("rename").set_visible(false);
 	find_widget<grid>("variation_gender_grid").set_visible(false);
-	find_widget<grid>("_header_grid").set_visible(show_header_ );
+	if (grid* header = find_widget<grid>("_header_grid", false, false)) {
+		header->set_visible(show_header_);
+	}
 
+	show_list();
 	list_item_clicked();
 }
 
-void units_dialog::show_list(listbox& list)
+void units_dialog::show_list()
 {
+	listbox& list = find_widget<listbox>("main_list");
+	list.clear();
+
 	if (row_num_ == 0) {
 		return;
 	}

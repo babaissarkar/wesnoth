@@ -15,7 +15,7 @@
 #pragma once
 
 #include "gui/dialogs/modal_dialog.hpp"
-#include "gui/widgets/button.hpp"
+
 #include "gui/widgets/group.hpp"
 #include "gui/widgets/listbox.hpp"
 #include "gui/widgets/toggle_button.hpp"
@@ -194,21 +194,25 @@ private:
 
 	std::vector<std::string> filter_options_;
 	std::vector<std::string> last_words_;
+
 	group<unit_race::GENDER> gender_toggle_;
 
-	group<unit_race::GENDER>& get_toggle() {
-		return gender_toggle_;
-	}
+	enum class view_mode { LIST, GRID };
+	group<view_mode> view_toggle_;
 
 	/** Callbacks */
 	void list_item_clicked();
 	void filter_text_changed();
 
+	group<unit_race::GENDER>& get_toggle() {
+		return gender_toggle_;
+	}
+
 	// FIXME only thing needing team
 	void dismiss_unit(std::vector<unit_const_ptr>& unit_list, const team& team);
 	void rename_unit(std::vector<unit_const_ptr>& unit_list);
 
-	void show_list(listbox& list);
+	void show_list();
 	void show_help() const;
 
 	void update_gender(const unit_race::GENDER val);
