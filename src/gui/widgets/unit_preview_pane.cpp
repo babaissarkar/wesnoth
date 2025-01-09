@@ -273,8 +273,9 @@ void unit_preview_pane::set_display_data(const unit_type& type)
 		}
 
 		mods += image_mods_;
+		mods += "~CROP_TRANSPARENCY()";
 
-		icon_type_->set_label((type.icon().empty() ? type.image() : type.icon()) + mods);
+		icon_type_->set_label(type.image() + mods);
 	}
 
 	if(label_name_) {
