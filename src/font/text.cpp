@@ -790,9 +790,8 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 	 pango_layout_set_width(&layout, maximum_width == -1
 	 	? -1
 	 	: maximum_width * PANGO_SCALE);
-	pango_layout_set_width(&layout, -1);
 
-	#ifdef __ANDROID__
+	// #ifdef __ANDROID__
 //		PLAIN_LOG << "android jni textbound calculation routine";
 //		JNIEnv* env = reinterpret_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
 //		env->PushLocalFrame(20);
@@ -821,9 +820,8 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 //			}
 //		}
 //		env->PopLocalFrame(nullptr);
-	#endif
-	// pango_layout_get_extents(&layout, nullptr, &size);
-	// PLAIN_LOG << __LINE__ << " " << size;
+	// #endif
+
 	pango_layout_get_pixel_extents(&layout, nullptr, &size);
 	PLAIN_LOG << "pango_text::" << __func__ << " " << size;
 
@@ -925,13 +923,13 @@ static void from_cairo_format(uint32_t & c)
 void pango_text::render(PangoLayout& layout, const SDL_Rect& viewport, const unsigned stride)
 {
 	cairo_format_t format = CAIRO_FORMAT_ARGB32;
-	
+
 	PLAIN_LOG << __func__ << " viewport: " << viewport << " stride: " << stride;
 
 	uint8_t* buffer = &surface_buffer_[0];
 
 	PLAIN_LOG << __func__ << " text: " << pango_layout_get_text(&layout);
-	
+
 	std::unique_ptr<cairo_surface_t, std::function<void(cairo_surface_t*)>> cairo_surface(
 		cairo_image_surface_create_for_data(buffer, format, viewport.w, viewport.h, stride), cairo_surface_destroy);
 	std::unique_ptr<cairo_t, std::function<void(cairo_t*)>> cr(cairo_create(cairo_surface.get()), cairo_destroy);

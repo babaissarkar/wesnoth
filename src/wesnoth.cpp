@@ -744,7 +744,7 @@ static int do_gameloop(commandline_options& cmdline_opts)
 	gui2::init();
 	gui2::switch_theme(prefs::get().gui2_theme());
 	const gui2::event::manager gui_event_manager;
-	
+
 	// Test
 	// gui2::show_message(_("Test"), "Message", gui2::dialogs::message::ok_button);
 
@@ -763,9 +763,9 @@ static int do_gameloop(commandline_options& cmdline_opts)
 		game_config::check_migration = false;
 		gui2::dialogs::migrate_version_selection::execute();
 	}
-	
+
 	PLAIN_LOG << __LINE__ << "checkpoint";
-	
+
 	gui2::dialogs::loading_screen::display([&res, &config_manager, &cmdline_opts]() {
 		gui2::dialogs::loading_screen::progress(loading_stage::load_config);
 
@@ -1107,10 +1107,6 @@ int main(int argc, char** argv)
 	events::event_context global_context;
 
 	SDL_StartTextInput();
-	
-	#ifdef __ANDROID__
-		nobanner = false;
-	#endif
 
 	try {
 		commandline_options cmdline_opts = commandline_options(args);

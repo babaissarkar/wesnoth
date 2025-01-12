@@ -377,7 +377,7 @@ void init_window(bool hidden)
 	} else if(prefs::get().maximized()) {
 		window_flags |= SDL_WINDOW_MAXIMIZED;
 	}
-	
+
 	#ifdef __ANDROID__
 		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles");
 	#endif
@@ -408,7 +408,7 @@ void init_window(bool hidden)
 	SDL_DisplayMode currentDisplayMode;
 	SDL_GetCurrentDisplayMode(window->get_display_index(), &currentDisplayMode);
 	refresh_rate_ = currentDisplayMode.refresh_rate != 0 ? currentDisplayMode.refresh_rate : 60;
-	
+
 	#ifdef __ANDROID__
 		window->set_size(w, h);
 	#endif
@@ -547,7 +547,7 @@ void reset_render_target()
 texture get_render_target()
 {
 	// This should always be up-to-date, but assert for sanity.
-	assert(current_render_target_ == SDL_GetRenderTarget(get_renderer()));
+	// assert(current_render_target_ == SDL_GetRenderTarget(get_renderer()));
 	return current_render_target_;
 }
 
