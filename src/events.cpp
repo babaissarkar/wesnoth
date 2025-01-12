@@ -492,9 +492,7 @@ void pump()
 	int begin_ignoring = 0;
 
 	std::vector<SDL_Event> events;
-	while(SDL_PollEvent(&temp_event)) {
-		PLAIN_LOG << __LINE__ << " Polling for event.";
-		
+	while(SDL_PollEvent(&temp_event)) {		
 		if(temp_event.type == INVOKE_FUNCTION_EVENT) {
 			static_cast<invoked_function_data*>(temp_event.user.data1)->call();
 			continue;
@@ -648,7 +646,6 @@ void pump()
 			continue;
 
 		case SDL_MOUSEMOTION: {
-			PLAIN_LOG << __LINE__ << " MMotion.";
 			// Always make sure a cursor is displayed if the mouse moves or if the user clicks
 			cursor::set_focus(true);
 			process_tooltip_strings(event.motion.x, event.motion.y);
@@ -656,7 +653,6 @@ void pump()
 		}
 
 		case SDL_MOUSEBUTTONDOWN: {
-			PLAIN_LOG << __LINE__ << " MBtnDn.";
 			// Always make sure a cursor is displayed if the mouse moves or if the user clicks
 			cursor::set_focus(true);
 			if(event.button.button == SDL_BUTTON_LEFT || event.button.which == SDL_TOUCH_MOUSEID) {
@@ -669,7 +665,6 @@ void pump()
 		}
 		
 		case SDL_FINGERDOWN: {
-			PLAIN_LOG << __LINE__ << " " << "screen touched!";
 			break;
 		}
 

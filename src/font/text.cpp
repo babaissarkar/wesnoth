@@ -749,8 +749,6 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 	PangoRectangle size = {0, 0, 0, 0};
 
 	p_font font{ get_font_families(font_class_), font_size_, font_style_ };
-	// p_font font{ "Sans", font_size_, font_style_ };
-//	pango_layout_set_font_description(&layout, pango_font_description_from_string("System-ui 10"));
 
 	if(font_style_ & pango_text::STYLE_UNDERLINE) {
 		PangoAttrList *attribute_list = pango_attr_list_new();
@@ -785,14 +783,13 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 		maximum_width = std::min(maximum_width, maximum_width_);
 	}
 
-	PLAIN_LOG << "pango_text::" << __func__ << " " << maximum_width_ << " " << maximum_height_;
+	DBG_GUI_L << "pango_text::" << __func__ << " " << maximum_width_ << " " << maximum_height_;
 
 	 pango_layout_set_width(&layout, maximum_width == -1
 	 	? -1
 	 	: maximum_width * PANGO_SCALE);
-	pango_layout_set_width(&layout, -1);
 
-	#ifdef __ANDROID__
+	// #ifdef __ANDROID__
 //		PLAIN_LOG << "android jni textbound calculation routine";
 //		JNIEnv* env = reinterpret_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
 //		env->PushLocalFrame(20);
@@ -821,20 +818,19 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 //			}
 //		}
 //		env->PopLocalFrame(nullptr);
-	#endif
-	// pango_layout_get_extents(&layout, nullptr, &size);
-	// PLAIN_LOG << __LINE__ << " " << size;
+	// #endif
+
 	pango_layout_get_pixel_extents(&layout, nullptr, &size);
-	PLAIN_LOG << "pango_text::" << __func__ << " " << size;
+	DBG_GUI_L << "pango_text::" << __func__ << " " << size;
 
 
-	PLAIN_LOG << "pango_text::" << __func__
+	DBG_GUI_L << "pango_text::" << __func__
 		<< " text '" << gui2::debug_truncate(text_)
 		<< "' maximum_width " << maximum_width
 		<< " width " << size.x + size.width
 		<< ".";
 
-	PLAIN_LOG << "pango_text::" << __func__
+	DBG_GUI_L << "pango_text::" << __func__
 		<< " text '" << gui2::debug_truncate(text_)
 		<< "' font_size " << font_size_
 		<< " markedup_text " << markedup_text_
@@ -845,7 +841,7 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 		<< ".";
 
 	if(maximum_width != -1 && size.x + size.width > maximum_width) {
-		PLAIN_LOG << "pango_text::" << __func__
+		DBG_GUI_L << "pango_text::" << __func__
 			<< " text '" << gui2::debug_truncate(text_)
 			<< " ' width " << size.x + size.width
 			<< " greater as the wanted maximum of " << maximum_width
@@ -854,7 +850,7 @@ PangoRectangle pango_text::calculate_size(PangoLayout& layout) const
 
 	// The maximum height is handled here instead of using the library - see the comments in set_maximum_height()
 	if(maximum_height_ != -1 && size.y + size.height > maximum_height_) {
-		PLAIN_LOG << "pango_text::" << __func__
+		DBG_GUI_L << "pango_text::" << __func__
 			<< " text '" << gui2::debug_truncate(text_)
 			<< " ' height " << size.y + size.height
 			<< " greater as the wanted maximum of " << maximum_height_
@@ -925,13 +921,13 @@ static void from_cairo_format(uint32_t & c)
 void pango_text::render(PangoLayout& layout, const SDL_Rect& viewport, const unsigned stride)
 {
 	cairo_format_t format = CAIRO_FORMAT_ARGB32;
-	
+
 	PLAIN_LOG << __func__ << " viewport: " << viewport << " stride: " << stride;
 
 	uint8_t* buffer = &surface_buffer_[0];
 
 	PLAIN_LOG << __func__ << " text: " << pango_layout_get_text(&layout);
-	
+
 	std::unique_ptr<cairo_surface_t, std::function<void(cairo_surface_t*)>> cairo_surface(
 		cairo_image_surface_create_for_data(buffer, format, viewport.w, viewport.h, stride), cairo_surface_destroy);
 	std::unique_ptr<cairo_t, std::function<void(cairo_t*)>> cr(cairo_create(cairo_surface.get()), cairo_destroy);
