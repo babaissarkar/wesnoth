@@ -124,7 +124,7 @@ bool game_config_manager::init_game_config(FORCE_RELOAD_CONFIG force_reload)
 	});
 
 	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
-	// prefs::get().load_advanced_prefs(game_config());
+	prefs::get().load_advanced_prefs(game_config());
 
 	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	::init_textdomains(game_config());
