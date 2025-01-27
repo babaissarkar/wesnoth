@@ -1073,6 +1073,7 @@ int main(int argc, char** argv)
 	putenv("PANGOCAIRO_BACKEND=fontconfig");
 	putenv("FONTCONFIG_PATH=/storage/emulated/0/Android/data/org.wesnoth.Wesnoth/files/gamedata/fonts");
 	game_config::path = SDL_AndroidGetExternalStoragePath() + std::string("/gamedata");
+	putenv("SDL_HINT_AUDIODRIVER=android");
 #endif
 
 	// write_to_log_file means that writing to the log file will be done, if true.
