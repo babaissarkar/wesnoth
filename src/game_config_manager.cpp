@@ -123,14 +123,11 @@ bool game_config_manager::init_game_config(FORCE_RELOAD_CONFIG force_reload)
 		prefs::get().load_hotkeys();
 	});
 
-	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	prefs::get().load_advanced_prefs(game_config());
 
-	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 	::init_textdomains(game_config());
 	about::set_about(game_config());
 	ai::configuration::init(game_config());
-	PLAIN_LOG << __LINE__ << " " << __FUNCTION__ << " checkpoint";
 
 	return true;
 }
