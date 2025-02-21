@@ -1046,10 +1046,10 @@ int main(int argc, char** argv)
 #endif
 
 #ifdef __ANDROID__
-	putenv("PANGOCAIRO_BACKEND=fontconfig");
-	putenv("FONTCONFIG_PATH=/storage/emulated/0/Android/data/org.wesnoth.Wesnoth/files/gamedata/fonts");
 	game_config::path = SDL_AndroidGetExternalStoragePath() + std::string("/gamedata");
-	putenv("SDL_HINT_AUDIODRIVER=android");
+	setenv("PANGOCAIRO_BACKEND", "fontconfig", 1);
+	setenv("FONTCONFIG_PATH", (game_config::path + "/fonts").c_str(), 1);
+	setenv("SDL_HINT_AUDIODRIVER", "android", 1);
 #endif
 	try {
 		commandline_options cmdline_opts = commandline_options(args);
@@ -1058,7 +1058,7 @@ int main(int argc, char** argv)
 #ifndef __ANDROID__
 		if(std::string exe_dir = filesystem::get_exe_dir(); !exe_dir.empty()) {
 			if(std::string auto_dir = autodetect_game_data_dir(std::move(exe_dir)); !auto_dir.empty()) {
-				if(!nobanner) {
+				if(!cmdline_opts.nobanner) {
 					PLAIN_LOG << "Automatically found a possible data directory at: " << auto_dir;
 				}
 				game_config::path = std::move(auto_dir);
