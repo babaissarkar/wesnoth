@@ -68,9 +68,6 @@
 
 #include <SDL2/SDL.h> // for SDL_Init, SDL_INIT_TIMER
 
-#ifdef __ANDROID__
-#define main SDL_main
-#endif
 
 #include <boost/program_options/errors.hpp>     // for error
 #include <boost/algorithm/string/predicate.hpp> // for checking cmdline options
@@ -107,6 +104,7 @@
 
 #ifdef __ANDROID__
 #include <android/log.h>
+#define main SDL_main
 #endif
 
 #ifdef DEBUG_WINDOW_LAYOUT_GRAPHS
@@ -604,7 +602,6 @@ static int process_command_args(commandline_options& cmdline_opts)
 		return 2;
 	}
 
-
 	// Not the most intuitive solution, but I wanted to leave current semantics for now
 	return -1;
 }
@@ -807,7 +804,6 @@ static int do_gameloop(commandline_options& cmdline_opts)
 
 	loading_screen::display([&res, &config_manager, &cmdline_opts]() {
 		loading_screen::progress(loading_stage::load_config);
-
 		res = config_manager.init_game_config(game_config_manager::NO_FORCE_RELOAD);
 
 		if(res == false) {
@@ -816,8 +812,8 @@ static int do_gameloop(commandline_options& cmdline_opts)
 		}
 
 		loading_screen::progress(loading_stage::init_fonts);
-		res = font::load_font_config();
 
+		res = font::load_font_config();
 		if(res == false) {
 			PLAIN_LOG << "could not re-initialize fonts for the current language";
 			return 1;
@@ -994,9 +990,6 @@ int main(int argc, char** argv)
 #endif
 {
 	events::set_main_thread();
-#ifdef __ANDROID__
-	__android_log_write(ANDROID_LOG_INFO, "wesnoth", "Wesnoth started");
-#endif
 	auto args = read_argv(argc, argv);
 	assert(!args.empty());
 
@@ -1011,10 +1004,11 @@ int main(int argc, char** argv)
 #endif
 
 #ifdef __ANDROID__
-	putenv("PANGOCAIRO_BACKEND=fontconfig");
-	putenv("FONTCONFIG_PATH=/storage/emulated/0/Android/data/org.wesnoth.Wesnoth/files/gamedata/fonts");
 	game_config::path = SDL_AndroidGetExternalStoragePath() + std::string("/gamedata");
-	putenv("SDL_HINT_AUDIODRIVER=android");
+	setenv("PANGOCAIRO_BACKEND", "fontconfig", 1);
+	setenv("FONTCONFIG_PATH", (game_config::path + "/fonts").c_str(), 1);
+	setenv("SDL_HINT_AUDIODRIVER", "android", 1);
+	__android_log_write(ANDROID_LOG_INFO, "wesnoth", "Wesnoth started");
 #endif
 	try {
 		commandline_options cmdline_opts = commandline_options(args);
@@ -1026,6 +1020,7 @@ int main(int argc, char** argv)
 				std::cerr << "Press enter to continue..." << std::endl;
 				std::cin.get();
 			}
+#endif
 			safe_exit(finished);
 		}
 
