@@ -124,7 +124,7 @@ SDL_Point window::get_output_size()
 #else
  	SDL_Point res;
  	SDL_GetRendererOutputSize(*this, &res.x, &res.y);
- 
+
  	return res;
 #endif
 }
