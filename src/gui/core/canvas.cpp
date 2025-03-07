@@ -36,12 +36,14 @@
 #include "picture.hpp"
 #include "sdl/point.hpp"
 #include "sdl/rect.hpp"
+#include "sdl/surface.hpp"
 #include "sdl/texture.hpp"
 #include "sdl/utils.hpp" // blur_surface
 #include "video.hpp" // read_pixels_low_res, only used for blurring
 #include "wml_exception.hpp"
 
-#include <iostream>
+#include <cairo.h>
+#include <cmath>
 
 namespace gui2
 {
@@ -223,18 +225,51 @@ void circle_shape::draw(wfl::map_formula_callable& variables)
 	const int x = x_(variables);
 	const int y = y_(variables);
 	const unsigned radius = radius_(variables);
+	const unsigned size = 2*radius;
 
-	DBG_GUI_D << "Circle: drawn at " << x << ',' << y << " radius " << radius << ".";
+	surface sdl_surf(size, size);
+
+	cairo_surface_t* surf = cairo_image_surface_create_for_data(
+		reinterpret_cast<unsigned char*>(sdl_surf->pixels),
+		CAIRO_FORMAT_ARGB32, size, size,
+		cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, size)
+	);
+	cairo_t* ctx = cairo_create(surf);
+
+	cairo_set_antialias(ctx, CAIRO_ANTIALIAS_BEST);
+
+	cairo_set_source_rgba(ctx, 0.0, 0.0, 0.0, 0.0);
+	cairo_paint(ctx);
 
 	const color_t fill_color = fill_color_(variables);
-	if(!fill_color.null() && radius) {
-		draw::disc(x, y, radius, fill_color);
+	if (!fill_color.null() && size > 0) {
+		cairo_set_source_rgba(ctx,
+			fill_color.r / 255.0,
+			fill_color.g / 255.0,
+			fill_color.b / 255.0,
+			fill_color.a / 255.0
+		);
+		cairo_arc(ctx, radius, radius, radius, 0, 2*M_PI);
+		cairo_fill(ctx);
 	}
 
+	cairo_set_line_width(ctx, border_thickness_);
 	const color_t border_color = border_color_(variables);
-	for(unsigned int i = 0; i < border_thickness_; i++) {
-		draw::circle(x, y, radius - i, border_color);
-	}
+	cairo_set_source_rgba(ctx,
+		border_color.r / 255.0,
+		border_color.g / 255.0,
+		border_color.b / 255.0,
+		border_color.a / 255.0
+	);
+	cairo_arc(ctx, radius, radius, radius-border_thickness_, 0, 2*M_PI);
+	cairo_stroke(ctx);
+
+	draw::blit(texture(sdl_surf), rect(x-radius, y-radius, size, size));
+
+	cairo_destroy(ctx);
+	cairo_surface_destroy(surf);
+
+	DBG_GUI_D << "Circle: drawn at " << x << ',' << y << " radius " << radius << ".";
 }
 
 /***** ***** ***** ***** ***** IMAGE ***** ***** ***** ***** *****/
