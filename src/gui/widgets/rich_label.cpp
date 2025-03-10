@@ -252,7 +252,7 @@ std::pair<config, point> rich_label::get_parsed_text(
 	bool new_text_block = false;
 
 	point pos(origin);
-	point float_size;
+	point float_pos, float_size;
 	point img_size;
 
 	DBG_GUI_RL << parsed_text.debug();
@@ -273,24 +273,20 @@ std::pair<config, point> rich_label::get_parsed_text(
 			if (child["float"].to_bool(false)) {
 
 				if (align == "right") {
-					pos.x = init_width - curr_img_size.x - float_size.x;
+					float_pos.x = init_width - curr_img_size.x;
 				} else if (align == "middle" || align == "center") {
 					// works for single image only
-					pos.x = float_size.x + (init_width - curr_img_size.x)/2;
-				} else {
-					// left aligned images are default for now
-					pos.x = float_size.x;
+					float_pos.x = float_size.x + (init_width - curr_img_size.x)/2;
 				}
 
 				if (is_image) {
-					pos.y += float_size.y;
+					float_pos.y += float_size.y;
 				}
 
-				(*curr_item)["x"] = pos.x;
-				(*curr_item)["y"] = pos.y;
+				(*curr_item)["x"] = float_pos.x;
+				(*curr_item)["y"] = float_pos.y;
 
 				x = (align == "left") ? float_size.x : 0;
-				pos.x = 0;
 				float_size.x = curr_img_size.x + padding_;
 				float_size.y += curr_img_size.y;
 
