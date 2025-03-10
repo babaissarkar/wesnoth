@@ -343,6 +343,8 @@ std::pair<config, point> rich_label::get_parsed_text(
 			if (curr_item == nullptr) {
 				curr_item = &(text_dom.add_child("text"));
 				default_text_config(curr_item);
+				(*curr_item)["x"] = pos.x;
+				(*curr_item)["y"] = pos.y;
 				new_text_block = false;
 			}
 
@@ -352,6 +354,7 @@ std::pair<config, point> rich_label::get_parsed_text(
 			x = origin.x;
 			prev_blk_height += text_height;
 			text_height = 0;
+			pos = point(origin.x, prev_blk_height);
 
 			// init table vars
 			unsigned col_idx = 0;
@@ -369,7 +372,6 @@ std::pair<config, point> rich_label::get_parsed_text(
 
 			// start on a new line
 			(*curr_item)["actions"] = boost::str(boost::format("([set_var('pos_x', 0), set_var('pos_y', %d), set_var('tw', width - pos_x - %d)])") % row_y % col_widths[col_idx]);
-			pos = point(0, prev_blk_height);
 
 			is_text = false;
 			new_text_block = true;
@@ -501,9 +503,10 @@ std::pair<config, point> rich_label::get_parsed_text(
 					x = origin.x;
 					prev_blk_height += padding_;
 					(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('pos_y', pos_y + image_height + padding)])";
-					pos = point(0, prev_blk_height);
+					pos = point(origin.x, prev_blk_height);
 					line = line.substr(1);
 				} else if (!line.empty() && line.at(0) != '\n') {
+
 					std::vector<std::string> parts = split_in_width(line, font_size_, (init_width-x));
 					// First line
 					if (!parts.front().empty()) {
@@ -517,13 +520,14 @@ std::pair<config, point> rich_label::get_parsed_text(
 						}
 
 						part2_cfg.add_child("text")["text"] = parts.back();
-						part2_cfg = get_parsed_text(part2_cfg, point(0, prev_blk_height), init_width, false).first;
+						part2_cfg = get_parsed_text(part2_cfg, point(origin.x, prev_blk_height), init_width, false).first;
 						remaining_item = &part2_cfg;
 					}
 
 					if (parts.size() == 1) {
 						prev_blk_height -= img_size.y;
 					}
+
 				} else {
 					prev_blk_height -= img_size.y;
 				}
@@ -538,6 +542,8 @@ std::pair<config, point> rich_label::get_parsed_text(
 
 				curr_item = &(text_dom.add_child("text"));
 				default_text_config(curr_item);
+				(*curr_item)["x"] = pos.x;
+				(*curr_item)["y"] = pos.y;
 				new_text_block = false;
 			}
 
@@ -658,6 +664,8 @@ std::pair<config, point> rich_label::get_parsed_text(
 					// rest of the text
 					curr_item = &(text_dom.add_child("text"));
 					default_text_config(curr_item);
+					(*curr_item)["x"] = pos.x;
+					(*curr_item)["y"] = pos.y;
 					tmp_h = get_text_size(*curr_item, init_width).y;
 					add_text_with_attribute(*curr_item, removed_part);
 
