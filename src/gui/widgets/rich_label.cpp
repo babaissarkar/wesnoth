@@ -302,14 +302,12 @@ std::pair<config, point> rich_label::get_parsed_text(
 					pos.x = pos.x + (init_width - curr_img_size.x)/2;
 				}
 
-				pos.y += baseline_correction(curr_img_size.y);
-
 				(*curr_item)["x"] = pos.x;
-				(*curr_item)["y"] = pos.y;
+				(*curr_item)["y"] = pos.y + baseline_correction(curr_img_size.y);
 
 				img_size.x += curr_img_size.x + padding_;
 				x = img_size.x;
-				pos.x = img_size.x;
+				pos.x += img_size.x;
 				img_size.y = std::max(img_size.y, curr_img_size.y);
 				if (!is_image || (is_image && is_float)) {
 					prev_blk_height += curr_img_size.y;
