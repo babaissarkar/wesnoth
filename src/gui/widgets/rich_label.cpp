@@ -308,7 +308,7 @@ std::pair<config, point> rich_label::get_parsed_text(
 				img_size.y = std::max(img_size.y, curr_img_size.y);
 
 				x = img_size.x;
-				pos.x = img_size.x;
+				pos.x = origin.x + img_size.x;
 
 				if (!is_image || (is_image && is_float)) {
 					prev_blk_height += curr_img_size.y;
