@@ -282,7 +282,7 @@ std::pair<config, point> rich_label::get_parsed_text(
 				}
 
 				(*curr_item)["x"] = float_pos.x;
-				(*curr_item)["y"] = float_pos.y;
+				(*curr_item)["y"] = pos.y + float_pos.y;
 
 				x = (align == "left") ? float_size.x : 0;
 				float_size.x = curr_img_size.x + padding_;
@@ -294,20 +294,21 @@ std::pair<config, point> rich_label::get_parsed_text(
 			} else {
 
 				if (align == "right") {
-					pos.x = init_width - curr_img_size.x - pos.x;
+					(*curr_item)["x"] = init_width - curr_img_size.x - pos.x;
 				} else if (align == "middle" || align == "center") {
 					// works for single image only
-					pos.x += (init_width - curr_img_size.x)/2;
+					(*curr_item)["x"] = pos.x + (init_width - curr_img_size.x)/2;
+				} else {
+					(*curr_item)["x"] = pos.x;
 				}
 
-				(*curr_item)["x"] = pos.x;
 				(*curr_item)["y"] = pos.y;
 
 				img_size.x += curr_img_size.x + padding_;
 				img_size.y = std::max(img_size.y, curr_img_size.y);
 
 				x = img_size.x;
-				pos.x += img_size.x;
+				pos.x = img_size.x;
 
 				if (!is_image || (is_image && is_float)) {
 					prev_blk_height += curr_img_size.y;
@@ -452,7 +453,7 @@ std::pair<config, point> rich_label::get_parsed_text(
 			// TODO correct height update
 			if (is_image && !is_float) {
 				prev_blk_height += padding_;
-				pos = point(0, prev_blk_height);
+				pos = point(0, prev_blk_height + text_height);
 			} else {
 				add_text_with_attribute(*curr_item, "\n");
 			}
@@ -482,7 +483,7 @@ std::pair<config, point> rich_label::get_parsed_text(
 					// Text following inline image starts with linebreak
 					x = origin.x;
 					prev_blk_height += padding_;
-					pos = point(origin.x, prev_blk_height);
+					pos = point(origin.x, prev_blk_height + text_height);
 					line = line.substr(1);
 
 				} else if (!line.empty() && line.at(0) != '\n') {
@@ -680,10 +681,11 @@ std::pair<config, point> rich_label::get_parsed_text(
 			w = std::max(w, x + static_cast<unsigned>(size.x));
 
 			text_height += ah - tmp_h;
+			pos.y += ah - tmp_h;
 
 			if (remaining_item) {
 				x = origin.x;
-				pos = point(0, pos.y + img_size.y);
+				pos = point(origin.x, pos.y + img_size.y);
 				text_dom.append(*remaining_item);
 				remaining_item = nullptr;
 				curr_item = &text_dom.all_children_view().back().second;
@@ -738,8 +740,6 @@ void rich_label::default_text_config(config* txt_ptr, const t_string& text) {
 		(*txt_ptr)["font_size"] = font_size_;
 		(*txt_ptr)["font_style"] = font_style_;
 		(*txt_ptr)["text_alignment"] = encode_text_alignment(get_text_alignment());
-		(*txt_ptr)["x"] = "(pos_x)";
-		(*txt_ptr)["y"] = "(pos_y)";
 		(*txt_ptr)["w"] = "(text_width)";
 		(*txt_ptr)["h"] = "(text_height)";
 		(*txt_ptr)["parse_text_as_formula"] = false;
