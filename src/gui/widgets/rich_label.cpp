@@ -299,16 +299,18 @@ std::pair<config, point> rich_label::get_parsed_text(
 					pos.x = init_width - curr_img_size.x - pos.x;
 				} else if (align == "middle" || align == "center") {
 					// works for single image only
-					pos.x = pos.x + (init_width - curr_img_size.x)/2;
+					pos.x += (init_width - curr_img_size.x)/2;
 				}
 
 				(*curr_item)["x"] = pos.x;
-				(*curr_item)["y"] = pos.y + baseline_correction(curr_img_size.y);
+				(*curr_item)["y"] = pos.y;
 
 				img_size.x += curr_img_size.x + padding_;
+				img_size.y = std::max(img_size.y, curr_img_size.y);
+
 				x = img_size.x;
 				pos.x += img_size.x;
-				img_size.y = std::max(img_size.y, curr_img_size.y);
+
 				if (!is_image || (is_image && is_float)) {
 					prev_blk_height += curr_img_size.y;
 					float_size.y -= curr_img_size.y;
@@ -505,13 +507,28 @@ std::pair<config, point> rich_label::get_parsed_text(
 			config part2_cfg;
 			if (is_image && (!is_float)) {
 				if (!line.empty() && line.at(0) == '\n') {
+
+					// Text following inline image starts with linebreak
 					x = origin.x;
 					prev_blk_height += padding_;
 					(*curr_item)["actions"] = "([set_var('pos_x', 0), set_var('pos_y', pos_y + image_height + padding)])";
 					pos = point(origin.x, prev_blk_height);
 					line = line.substr(1);
+
 				} else if (!line.empty() && line.at(0) != '\n') {
 
+					// Text following inline image does not start with linebreak
+					// Add y correction to previous image so that it aligns with the line of text
+					(*curr_item)["y"] = pos.y + baseline_correction(img_size.y);
+
+					// Break the text into two parts:
+					// the first part is a single line of text that fit in the area after the image
+					// the rest goes on a new paragraph just below the image
+					// -------------
+					// |   Inline  | as much of text you can fit in a single line goes here...
+					// |   Image   |
+					// -------------
+					// rest goes here.....
 					std::vector<std::string> parts = split_in_width(line, font_size_, (init_width-x));
 					// First line
 					if (!parts.front().empty()) {
@@ -539,12 +556,6 @@ std::pair<config, point> rich_label::get_parsed_text(
 			}
 
 			if (curr_item == nullptr || new_text_block) {
-				if (curr_item != nullptr) {
-					// table will calculate this by itself, no need to calculate here
-					prev_blk_height += text_height;
-					text_height = 0;
-				}
-
 				curr_item = &(text_dom.add_child("text"));
 				default_text_config(curr_item);
 				(*curr_item)["x"] = pos.x;
