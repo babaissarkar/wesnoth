@@ -79,7 +79,7 @@ wfl::map_formula_callable rich_label::setup_text_renderer(config text_cfg, unsig
 	// Set up fake render to calculate text position
 	static wfl::action_function_symbol_table functions;
 	wfl::map_formula_callable variables;
-	variables.add("text", wfl::variant(text_cfg["text"].str()));
+	variables.add("text", wfl::variant(text_cfg["text"]));
 	variables.add("width", wfl::variant(width));
 	variables.add("text_wrap_mode", wfl::variant(PANGO_ELLIPSIZE_NONE));
 	variables.add("fake_draw", wfl::variant(true));
@@ -310,8 +310,9 @@ std::pair<config, point> rich_label::get_parsed_text(
 				x = img_size.x;
 				pos.x = origin.x + img_size.x;
 
-				if (!is_image || (is_image && is_float)) {
-					prev_blk_height += curr_img_size.y;
+				if (!is_image || is_float) {
+					prev_blk_height += text_height + curr_img_size.y;
+					text_height = 0;
 					float_size.y -= curr_img_size.y;
 				}
 
@@ -452,8 +453,9 @@ std::pair<config, point> rich_label::get_parsed_text(
 
 			// TODO correct height update
 			if (is_image && !is_float) {
-				prev_blk_height += padding_;
-				pos = point(0, prev_blk_height + text_height);
+				prev_blk_height += text_height + padding_;
+				text_height = 0;
+				pos = point(0, prev_blk_height);
 			} else {
 				add_text_with_attribute(*curr_item, "\n");
 			}
@@ -483,7 +485,7 @@ std::pair<config, point> rich_label::get_parsed_text(
 					// Text following inline image starts with linebreak
 					x = origin.x;
 					prev_blk_height += padding_;
-					pos = point(origin.x, prev_blk_height + text_height);
+					pos = point(origin.x, prev_blk_height);
 					line = line.substr(1);
 
 				} else if (!line.empty() && line.at(0) != '\n') {
@@ -508,10 +510,7 @@ std::pair<config, point> rich_label::get_parsed_text(
 
 					std::string& part2 = parts.back();
 					if (!part2.empty() && parts.size() > 1) {
-						if (part2[0] == '\n') {
-							part2 = part2.substr(1);
-						}
-
+						part2 = (part2[0] == '\n') ? part2.substr(1) : part2;
 						part2_cfg.add_child("text")["text"] = parts.back();
 						part2_cfg = get_parsed_text(part2_cfg, point(origin.x, prev_blk_height), init_width, false).first;
 						remaining_item = &part2_cfg;
