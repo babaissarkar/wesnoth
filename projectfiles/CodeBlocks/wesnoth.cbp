@@ -821,6 +821,7 @@
 		<Unit filename="../../src/gui/widgets/retval.hpp" />
 		<Unit filename="../../src/gui/widgets/rich_label.cpp" />
 		<Unit filename="../../src/gui/widgets/rich_label.hpp" />
+		<Unit filename="../../src/gui/widgets/rich_label_private.hpp" />
 		<Unit filename="../../src/gui/widgets/scroll_label.cpp" />
 		<Unit filename="../../src/gui/widgets/scroll_label.hpp" />
 		<Unit filename="../../src/gui/widgets/scroll_text.cpp" />

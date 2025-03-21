@@ -1,0 +1,764 @@
+/*
+	Copyright (C) 2025
+	by Subhraman Sarkar (babaissarkar) <suvrax@gmail.com>
+	Part of the Battle for Wesnoth Project https://www.wesnoth.org/
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY.
+
+	See the COPYING file for more details.
+*/
+
+#pragma once
+
+#include "config.hpp"
+#include "log.hpp"
+#include "sdl/point.hpp"
+#include "sdl/rect.hpp"
+#include "serialization/string_utils.hpp"
+
+#include <boost/multi_array.hpp>
+
+static lg::log_domain log_rich_label("gui/widget/rich_label");
+#define DBG_GUI_RL LOG_STREAM(debug, log_rich_label)
+
+#define LINK_DEBUG_BORDER false
+
+namespace gui2
+{
+
+// }------------ ITEMS (Declarations) -------------{
+struct item
+{
+private:
+    point origin_;
+    point size_;
+
+protected:
+    void set_size(const point& size) { size_ = size; }
+
+public:
+    explicit item()
+        : origin_(0, 0)
+        , size_(0, 0)
+    {}
+
+    virtual ~item();
+
+    void set_origin(const point& origin) { origin_ = origin; }
+    point origin() const { return origin_; }
+    point size() const { return size_; }
+};
+
+struct text;
+struct image: public item
+{
+    explicit image(const config& cfg, const int max_width, const int padding)
+        : item()
+		, padding_(padding)
+		, max_width_(max_width)
+		, floating_(cfg["float"].to_bool())
+		, src_(cfg["name"].str())
+		, align_(cfg["align"].str("left"))
+    {
+		// TODO should trigger warning/abort when src_ is empty
+    }
+
+private:
+	const int padding_;
+	const int max_width_;
+	const bool floating_;
+	const std::string src_;
+	const std::string align_;
+};
+
+struct table: public item
+{
+    explicit table(const config& cfg, const int max_width, const int padding);
+
+	std::array<int, 2> get_padding(const config::attribute_value& val) const;
+	void calculate_cell_sizes();
+
+	private:
+		config cfg_;
+		int rows_, columns_;
+		int max_cell_width_;
+		int padding_;
+		std::vector<int> row_heights_, col_widths_;
+		boost::multi_array<point, 2> cell_sizes_;
+};
+
+/**
+ * Given a parsed config from help markup,
+ * layout it into a config that can be understood by canvas
+ */
+std::pair<config, point> generate_layout(
+    const config& parsed_text,
+    const point& origin,
+    const unsigned init_width,
+    std::vector<std::pair<rect, std::string>> links,
+    const int padding,
+    const bool finalize = false)
+{
+	// Initial width
+	DBG_GUI_RL << "Initial width: " << init_width;
+
+	// Initialization
+	unsigned x = 0;
+	unsigned prev_blk_height = origin.y;
+	unsigned text_height = 0;
+	unsigned h = 0;
+	unsigned w = 0;
+
+	if (finalize) {
+		links.clear();
+	}
+
+	config text_dom;
+	config* curr_item = nullptr;
+	config* remaining_item = nullptr;
+
+	bool is_text = false;
+	bool is_image = false;
+	bool is_float = false;
+	bool wrap_mode = false;
+	bool new_text_block = false;
+
+	point pos(origin);
+	point float_pos, float_size;
+	point img_size;
+
+	DBG_GUI_RL << parsed_text.debug();
+
+	for(const auto [key, child] : parsed_text.all_children_view()) {
+		if(key == "img") {
+
+			image img(child, init_width, padding);
+			img.set_origin(pos);
+			/*
+			std::string align = child["align"].str("left");
+
+			curr_item = &(text_dom.add_child("image"));
+			(*curr_item)["name"] = child["src"];
+			(*curr_item)["x"] = 0;
+			(*curr_item)["y"] = 0;
+			(*curr_item)["w"] = "(image_width)";
+			(*curr_item)["h"] = "(image_height)";
+
+			const point& curr_img_size = get_image_size(*curr_item);
+
+			prev_blk_height += text_height;
+			text_height = 0;
+
+			if (child["float"].to_bool(false)) {
+
+				if (align == "right") {
+					float_pos.x = init_width - curr_img_size.x;
+				} else if (align == "middle" || align == "center") {
+					// works for single image only
+					float_pos.x = float_size.x + (init_width - curr_img_size.x)/2;
+				}
+
+				if (is_image) {
+					float_pos.y += float_size.y;
+				}
+
+				(*curr_item)["x"] = float_pos.x;
+				(*curr_item)["y"] = pos.y + float_pos.y;
+
+				x = (align == "left") ? float_size.x : 0;
+				float_size.x = curr_img_size.x + padding;
+				float_size.y += curr_img_size.y + padding;
+
+				wrap_mode = true;
+				is_float = true;
+
+			} else {
+
+				if (align == "right") {
+					(*curr_item)["x"] = init_width - curr_img_size.x - pos.x;
+				} else if (align == "middle" || align == "center") {
+					// works for single image only
+					(*curr_item)["x"] = pos.x + (init_width - curr_img_size.x)/2;
+				} else {
+					(*curr_item)["x"] = pos.x;
+				}
+
+				(*curr_item)["y"] = pos.y;
+
+				img_size.x += curr_img_size.x + padding;
+				img_size.y = std::max(img_size.y, curr_img_size.y);
+
+				x = img_size.x;
+				pos.x = origin.x + img_size.x;
+
+				if (!is_image || is_float) {
+					prev_blk_height += curr_img_size.y;
+					float_size.y -= curr_img_size.y;
+				}
+
+				is_float = false;
+			}
+
+			*/
+
+			w = std::max(w, x);
+
+			is_image = true;
+			is_text = false;
+			new_text_block = true;
+
+			DBG_GUI_RL << "image: src=" << child["src"] << ", size=" << img_size;
+			DBG_GUI_RL << "wrap mode: " << wrap_mode << ", floating: " << is_float;
+
+		} else if(key == "table") {
+			if (curr_item == nullptr) {
+				curr_item = &(text_dom.add_child("text"));
+				default_text_config(curr_item, pos, init_width);
+				new_text_block = false;
+			}
+
+			// table doesn't support floating images alongside
+			img_size = point(0,0);
+			float_size = point(0,0);
+			x = origin.x;
+			prev_blk_height += text_height + padding;
+			text_height = 0;
+			pos = point(origin.x, prev_blk_height + padding);
+
+			////////////// New Code /////////////////
+			int max_width = child["width"] == "fill" ? init_width : child["width"].to_int(init_width);
+			table t(child, max_width, padding);
+			t.set_origin(pos);
+			t.calculate_cell_sizes();
+			/////////////////////////////////////////
+
+			// init table vars
+			unsigned col_idx = 0, row_idx = 0;
+			unsigned rows = child.child_count("row");
+			unsigned columns = 1;
+			if (rows > 0) {
+				columns = child.mandatory_child("row").child_count("col");
+			}
+			columns = (columns == 0) ? 1 : columns;
+			int init_cell_width;
+			if (child["width"] == "fill") {
+				init_cell_width = init_width/columns;
+			} else {
+				init_cell_width = child["width"].to_int(init_width)/columns;
+			}
+			std::vector<int> col_widths(columns, 0);
+			std::vector<int> row_heights(rows, 0);
+
+			is_text = false;
+			new_text_block = true;
+			is_image = false;
+
+			DBG_GUI_RL << "start table : " << "row= " << rows << " col=" << columns
+			           << " width=" << init_cell_width*columns;
+
+			const auto get_padding = [padding](const config::attribute_value& val) {
+				if(val.blank()) {
+					return std::array{ padding, padding };
+				} else {
+					auto paddings = utils::split(val.str(), ' ');
+					return std::array{ std::stoi(paddings[0]), std::stoi(paddings[1]) };
+				}
+			};
+
+			std::array<int, 2> row_paddings;
+			boost::multi_array<point, 2> cell_sizes(boost::extents[rows][columns]);
+
+			// optimal col width calculation
+			for(const config& row : child.child_range("row")) {
+				pos.x = origin.x;
+				col_idx = 0;
+
+				// order: top padding|bottom padding
+				row_paddings = get_padding(row["padding"]);
+
+				pos.y += row_paddings[0];
+				for(const config& col : row.child_range("col")) {
+					DBG_GUI_RL << "table cell origin (pre-layout): " << pos.x << ", " << pos.y;
+					config col_cfg;
+					col_cfg.append_children(col);
+					config& col_txt_cfg = col_cfg.add_child("text");
+					col_txt_cfg.append_attributes(col);
+
+					// order: left padding|right padding
+					std::array<int, 2> col_paddings = get_padding(col["padding"]);
+					int cell_width = init_cell_width - col_paddings[0] - col_paddings[1];
+
+					pos.x += col_paddings[0];
+					// attach data
+					cell_sizes[row_idx][col_idx] = generate_layout(col_cfg, pos, init_cell_width, links, padding).second;
+
+					// column post-processing
+					row_heights[row_idx] = std::max(row_heights[row_idx], cell_sizes[row_idx][col_idx].y);
+					if (!child["width"].empty()) {
+						col_widths[col_idx] = cell_width;
+					}
+					col_widths[col_idx] = std::max(col_widths[col_idx], cell_sizes[row_idx][col_idx].x);
+					if (child["width"].empty()) {
+						col_widths[col_idx] = std::min(col_widths[col_idx], cell_width);
+					}
+
+					DBG_GUI_RL << "table row " << row_idx << " height: " << row_heights[row_idx]
+					           << "col " << col_idx << " width: " << col_widths[col_idx];
+
+					pos.x += cell_width;
+					pos.x += col_paddings[1];
+					col_idx++;
+				}
+
+				pos.y += row_heights[row_idx] + row_paddings[1];
+				row_idx++;
+			}
+
+			// table layouting
+			row_idx = 0;
+			pos = point(origin.x, prev_blk_height);
+			for(const config& row : child.child_range("row")) {
+				pos.x = origin.x;
+				col_idx = 0;
+
+				if (!row["bgcolor"].blank()) {
+					config bg_base;
+					config& bgbox = bg_base.add_child("rectangle");
+					bgbox["x"] = origin.x;
+					bgbox["y"] = pos.y;
+					bgbox["w"] = std::accumulate(col_widths.begin(), col_widths.end(), 0) + 2*(row_paddings[0] + row_paddings[1])*columns;
+					bgbox["h"] = row_paddings[0] + row_heights[row_idx] + row_paddings[1];
+					bgbox["fill_color"] = get_color(row["bgcolor"].str()).to_rgba_string();
+					text_dom.append(std::move(bg_base));
+				}
+
+				pos.y += row_paddings[0];
+
+				for(const config& col : row.child_range("col")) {
+					DBG_GUI_RL << "table row " << row_idx << " height: " << row_heights[row_idx]
+					           << "col " << col_idx << " width: " << col_widths[col_idx];
+					DBG_GUI_RL << "cell origin: " << pos;
+
+					config col_cfg;
+					col_cfg.append_children(col);
+					config& col_txt_cfg = col_cfg.add_child("text");
+					col_txt_cfg.append_attributes(col);
+
+					// order: left padding|right padding
+					std::array<int, 2> col_paddings = get_padding(col["padding"]);
+
+					pos.x += col_paddings[0];
+
+					// set position according to alignment keys
+					point text_pos(pos);
+					if (row["valign"] == "center" || row["valign"] == "middle") {
+						text_pos.y += (row_heights[row_idx] - cell_sizes[row_idx][col_idx].y)/2;
+					} else if (row["valign"] == "bottom") {
+						text_pos.y += row_heights[row_idx] - cell_sizes[row_idx][col_idx].y;
+					}
+					if (col["halign"] == "center" || col["halign"] == "middle") {
+						text_pos.x += (col_widths[col_idx] - cell_sizes[row_idx][col_idx].x)/2;
+					} else if (col["halign"] == "right") {
+						text_pos.x += col_widths[col_idx] - cell_sizes[row_idx][col_idx].x;
+					}
+
+					// attach data
+					auto [table_elem, size] = generate_layout(col_cfg, text_pos, col_widths[col_idx], links, padding);
+					text_dom.append(std::move(table_elem));
+					pos.x += col_widths[col_idx];
+					pos.x += col_paddings[1];
+
+					auto [_, end_cfg] = text_dom.all_children_view().back();
+					end_cfg["maximum_width"] = col_widths[col_idx];
+
+					DBG_GUI_RL << "jump to next column";
+
+					if (!is_image) {
+						new_text_block = true;
+					}
+					is_image = false;
+					col_idx++;
+				}
+
+				pos.y += row_heights[row_idx];
+				pos.y += row_paddings[1];
+				DBG_GUI_RL << "row height: " << row_heights[row_idx];
+				row_idx++;
+			}
+
+			w = std::max(w, static_cast<unsigned>(pos.x));
+			prev_blk_height = pos.y;
+			text_height = 0;
+			pos.x = origin.x;
+
+			is_image = false;
+			is_text = false;
+
+			x = origin.x;
+
+		} else if(key == "break" || key == "br") {
+			if (curr_item == nullptr) {
+				curr_item = &(text_dom.add_child("text"));
+				default_text_config(curr_item, pos, init_width);
+				new_text_block = false;
+			}
+
+			// TODO correct height update
+			if (is_image && !is_float) {
+				prev_blk_height += text_height + padding;
+				text_height = 0;
+				pos = point(origin.x, prev_blk_height);
+			} else {
+				add_text_with_attribute(*curr_item, "\n");
+			}
+
+			x = origin.x;
+			is_image = false;
+			img_size = point(0,0);
+
+			DBG_GUI_RL << "linebreak";
+
+			if (!is_image) {
+				new_text_block = true;
+			}
+			is_text = false;
+
+		} else {
+			std::string line = child["text"];
+
+			if (!finalize && line.empty()) {
+				continue;
+			}
+
+			config part2_cfg;
+			if (is_image && (!is_float)) {
+				if (!line.empty() && line.at(0) == '\n') {
+
+					// Text following inline image starts with linebreak
+					x = origin.x;
+					prev_blk_height += padding;
+					pos = point(origin.x, prev_blk_height);
+					line = line.substr(1);
+
+				} else if (!line.empty() && line.at(0) != '\n') {
+
+					// Text following inline image does not start with linebreak
+					// Add y correction to previous image so that it aligns with the line of text
+					(*curr_item)["y"] = pos.y + baseline_correction(img_size.y);
+
+					// Break the text into two parts:
+					// the first part is a single line of text that fit in the area after the image
+					// the rest goes on a new paragraph just below the image
+					// -------------
+					// |   Inline  | as much of text you can fit in a single line goes here...
+					// |   Image   |
+					// -------------
+					// rest goes here.....
+					std::vector<std::string> parts = split_in_width(line, font_size_, (init_width-x));
+					// First line
+					if (!parts.front().empty()) {
+						line = parts.front();
+					}
+
+					std::string& part2 = parts.back();
+					if (!part2.empty() && parts.size() > 1) {
+						part2 = (part2[0] == '\n') ? part2.substr(1) : part2;
+						part2_cfg.add_child("text")["text"] = parts.back();
+						part2_cfg = generate_layout(part2_cfg, point(origin.x, prev_blk_height), init_width, false).first;
+						remaining_item = &part2_cfg;
+					}
+
+					if (parts.size() == 1) {
+						prev_blk_height -= img_size.y;
+					}
+
+				} else {
+					prev_blk_height -= img_size.y;
+				}
+			}
+
+			if (curr_item == nullptr || new_text_block) {
+				curr_item = &(text_dom.add_child("text"));
+				default_text_config(curr_item, pos, init_width - pos.x - float_size.x);
+				new_text_block = false;
+			}
+
+			// }---------- TEXT TAGS -----------{
+			int tmp_h = get_text_size(*curr_item, init_width - (x == 0 ? float_size.x : x)).y;
+
+			if (is_text && key == "text") {
+				add_text_with_attribute(*curr_item, "\n\n");
+			}
+			is_text = false;
+
+			if(key == "ref") {
+
+				add_link(*curr_item, line, child["dst"], point(x + origin.x, prev_blk_height), float_size.x);
+				is_image = false;
+
+				DBG_GUI_RL << "ref: dst=" << child["dst"];
+
+			} else if(std::find(format_tags.begin(), format_tags.end(), key) != format_tags.end()) {
+				// TODO only the formatting tags here support nesting
+
+				add_text_with_attribute(*curr_item, line, key);
+				config parsed_children = generate_layout(child, point(x, prev_blk_height), init_width).first;
+
+				for (const auto [parsed_key, parsed_cfg] : parsed_children.all_children_view()) {
+					if (parsed_key == "text") {
+						const auto [start, end] = add_text(*curr_item, parsed_cfg["text"]);
+						for (const config& attr : parsed_cfg.child_range("attribute")) {
+							add_attribute(*curr_item, attr["name"], start + attr["start"].to_int(), start + attr["end"].to_int(), attr["value"]);
+						}
+						add_attribute(*curr_item, key, start, end);
+					} else {
+						text_dom.add_child(parsed_key, parsed_cfg);
+					}
+				}
+
+				is_image = false;
+
+				DBG_GUI_RL << key << ": text=" << gui2::debug_truncate(line);
+
+			} else if(key == "header" || key == "h") {
+
+				const auto [start, end] = add_text(*curr_item, line);
+				add_attribute(*curr_item, "weight", start, end, "heavy");
+				add_attribute(*curr_item, "color", start, end, font::string_to_color("white").to_hex_string());
+				add_attribute(*curr_item, "size", start, end, std::to_string(font::SIZE_TITLE - 2));
+
+				is_image = false;
+
+				DBG_GUI_RL << "h: text=" << line;
+
+			} else if(key == "character_entity") {
+				line = "&" + child["name"].str() + ";";
+
+				const auto [start, end] = add_text(*curr_item, line);
+				add_attribute(*curr_item, "face", start, end, "monospace");
+				add_attribute(*curr_item, "color", start, end, font::string_to_color("red").to_hex_string());
+
+				is_image = false;
+
+				DBG_GUI_RL << "entity: text=" << line;
+
+			} else if(key == "span" || key == "format") {
+
+				const auto [start, end] = add_text(*curr_item, line);
+				DBG_GUI_RL << "span/format: text=" << line;
+				DBG_GUI_RL << "attributes:";
+
+				for (const auto& [key, value] : child.attribute_range()) {
+					if (key != "text") {
+						add_attribute(*curr_item, key, start, end, value);
+						DBG_GUI_RL << key << "=" << value;
+					}
+				}
+
+				is_image = false;
+
+			} else if (key == "text") {
+
+				DBG_GUI_RL << "text: text=" << gui2::debug_truncate(line) << "...";
+
+				add_text(*curr_item, line);
+
+				point text_size = get_text_size(*curr_item, init_width - (x == 0 ? float_size.x : x));
+				text_size.x -= x;
+
+				is_text = true;
+
+				if (wrap_mode && (float_size.y > 0) && (text_size.y > float_size.y)) {
+					DBG_GUI_RL << "wrap start";
+
+					size_t len = get_split_location((*curr_item)["text"].str(), point(init_width - float_size.x, float_size.y * video::get_pixel_scale()));
+					DBG_GUI_RL << "wrap around area: " << float_size;
+
+					// first part of the text
+					std::string removed_part = (*curr_item)["text"].str().substr(len+1);
+					(*curr_item)["text"] = (*curr_item)["text"].str().substr(0, len);
+					(*curr_item)["maximum_width"] = init_width - float_size.x;
+					float_size = point(0,0);
+
+					// Height update
+					int ah = get_text_size(*curr_item, init_width - float_size.x).y;
+					if (tmp_h > ah) {
+						tmp_h = 0;
+					}
+					text_height += ah - tmp_h;
+
+					prev_blk_height += text_height + 0.3*font::get_max_height(font_size_);
+					pos = point(origin.x, prev_blk_height);
+
+					DBG_GUI_RL << "wrap: " << prev_blk_height << "," << text_height;
+					text_height = 0;
+
+					// New text block
+					x = origin.x;
+					wrap_mode = false;
+
+					// rest of the text
+					curr_item = &(text_dom.add_child("text"));
+					default_text_config(curr_item, pos, init_width - pos.x - float_size.x);
+					tmp_h = get_text_size(*curr_item, init_width).y;
+					add_text_with_attribute(*curr_item, removed_part);
+
+				} else if ((float_size.y > 0) && (text_size.y < float_size.y)) {
+					//TODO padding?
+					// text height less than floating image's height, don't split
+					DBG_GUI_RL << "no wrap";
+					pos.y += text_size.y;
+				}
+
+				if (!wrap_mode) {
+					float_size = point(0,0);
+				}
+
+				is_image = false;
+			}
+
+			point size = get_text_size(*curr_item, init_width - (x == 0 ? float_size.x : x));
+			// update text size and widget height
+			if (tmp_h > size.y) {
+				tmp_h = 0;
+			}
+			w = std::max(w, x + static_cast<unsigned>(size.x));
+
+			text_height += size.y - tmp_h;
+			pos.y += size.y - tmp_h;
+
+			if (remaining_item) {
+				x = origin.x;
+				pos = point(origin.x, pos.y + img_size.y);
+				text_dom.append(*remaining_item);
+				remaining_item = nullptr;
+				curr_item = &text_dom.all_children_view().back().second;
+			}
+		}
+
+		if (!is_image && !wrap_mode && img_size.y > 0) {
+			img_size = point(0,0);
+		}
+
+		if (curr_item) {
+			DBG_GUI_RL << "Item:\n" << curr_item->debug();
+		}
+		DBG_GUI_RL << "X: " << x;
+		DBG_GUI_RL << "Prev block height: " << prev_blk_height << " Current text block height: " << text_height;
+		DBG_GUI_RL << "Height: " << h;
+		h = text_height + prev_blk_height;
+		DBG_GUI_RL << "-----------";
+	} // for loop ends
+
+	if (w == 0) {
+		w = init_width;
+	}
+
+	// DEBUG: draw boxes around links
+	#if LINK_DEBUG_BORDER
+	if (finalize) {
+		for (const auto& entry : links_) {
+			config& link_rect_cfg = text_dom.add_child("rectangle");
+			link_rect_cfg["x"] = entry.first.x;
+			link_rect_cfg["y"] = entry.first.y;
+			link_rect_cfg["w"] = entry.first.w;
+			link_rect_cfg["h"] = entry.first.h;
+			link_rect_cfg["border_thickness"] = 1;
+			link_rect_cfg["border_color"] = "255, 180, 0, 255";
+		}
+	}
+	#endif
+
+	// TODO float and a mix of floats and images and tables
+	h = std::max(static_cast<unsigned>(img_size.y), h);
+
+	DBG_GUI_RL << "Width: " << w << " Height: " << h << " Origin: " << origin;
+	return { text_dom, point(w, h - origin.y) };
+} // function ends
+
+table::table(const config& cfg, const int max_width, const int padding)
+	: item()
+	, cfg_(cfg)
+	, rows_(cfg.child_count("row"))
+	, columns_(cfg.mandatory_child("row").child_count("col"))
+	, padding_(padding)
+	, row_heights_(rows_, 0)
+	, col_widths_(columns_, 0)
+	, cell_sizes_(boost::extents[rows_][columns_])
+{
+	if (columns_ == 0) {
+		columns_ = 1;
+	}
+	max_cell_width_ = max_width/columns_;
+}
+
+std::array<int, 2> table::get_padding(const config::attribute_value& val) const
+{
+	if(val.blank()) {
+		return std::array{ padding_, padding_ };
+	} else {
+		auto paddings = utils::split(val.str(), ' ');
+		return std::array{ std::stoi(paddings[0]), std::stoi(paddings[1]) };
+	}
+}
+
+void table::calculate_cell_sizes()
+{
+	point pos;
+	point origin(this->origin());
+	int row_idx = 0, col_idx = 0;
+
+	// optimal col width calculation
+	for(const config& row : cfg_.child_range("row")) {
+		pos.x = origin.x;
+		col_idx = 0;
+
+		// order: top padding|bottom padding
+		std::array<int, 2> row_paddings = get_padding(row["padding"]);
+
+		pos.y += row_paddings[0];
+		for(const config& col : row.child_range("col")) {
+			// DBG_GUI_RL << "table cell origin (pre-layout): " << pos.x << ", " << pos.y;
+			config col_cfg;
+			col_cfg.append_children(col);
+			config& col_txt_cfg = col_cfg.add_child("text");
+			col_txt_cfg.append_attributes(col);
+
+			// order: left padding|right padding
+			std::array<int, 2> col_paddings = get_padding(col["padding"]);
+			int cell_width = max_cell_width_ - col_paddings[0] - col_paddings[1];
+
+			pos.x += col_paddings[0];
+
+			// store calculation results for cell sizes
+			cell_sizes_[row_idx][col_idx] = generate_layout(col_cfg, pos, max_cell_width_).second;
+
+			// column post-processing
+			row_heights_[row_idx] = std::max(row_heights_[row_idx], cell_sizes_[row_idx][col_idx].y);
+			if (!cfg_["width"].empty()) {
+				col_widths_[col_idx] = cell_width;
+			}
+			col_widths_[col_idx] = std::max(col_widths_[col_idx], cell_sizes_[row_idx][col_idx].x);
+			if (cfg_["width"].empty()) {
+				col_widths_[col_idx] = std::min(col_widths_[col_idx], cell_width);
+			}
+
+			// DBG_GUI_RL << "table row " << row_idx << " height: " << row_heights_[row_idx]
+			//            << "col " << col_idx << " width: " << col_widths_[col_idx];
+
+			pos.x += cell_width;
+			pos.x += col_paddings[1];
+			col_idx++;
+		}
+
+		pos.y += row_heights_[row_idx] + row_paddings[1];
+		row_idx++;
+	}
+}
+
+} // end namespace gui2

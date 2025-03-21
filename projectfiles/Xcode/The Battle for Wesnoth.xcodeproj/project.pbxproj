@@ -651,6 +651,7 @@
 		6A1F44688986D07EB5DBEF75 /* gui_test_dialog.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 0110429EAA81AED07D53B749 /* gui_test_dialog.hpp */; };
 		6C4A4F7982769422C51DC3E6 /* reachmap_options.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 85514A7D81C52A912FF68AEB /* reachmap_options.cpp */; };
 		6D574EACA3483ABEE72819F0 /* statistics_record.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 27764FB68F02032F1C0B6748 /* statistics_record.cpp */; };
+		742C4A1390CDD9E576AEB656 /* rich_label_private.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 93C14E08A028C9C6098A3BD5 /* rich_label_private.hpp */; };
 		77D94146A5FA29849D1A9BD8 /* multiline_text.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0B0F48CE9CF65D9813BE6CDC /* multiline_text.cpp */; };
 		7A0347D48BDB52B1430D9E79 /* migrate_version_selection.hpp in Headers */ = {isa = PBXBuildFile; fileRef = B3DE4F95AF72C6F6BC37E695 /* migrate_version_selection.hpp */; };
 		7A7146D7893AA09891352019 /* test_schema_validator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CF14AB694764953E2CB3AF7 /* test_schema_validator.cpp */; };
@@ -1480,6 +1481,7 @@
 		F7524948ADF9BC097E6D8DBC /* charconv.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A03A423AB502FE015C91F1C9 /* charconv.hpp */; };
 		F8974F919B014C9E7103A6B9 /* markup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B5EE4DE4B73C204AC0666900 /* markup.cpp */; };
 		F96A40219A964A8022910D73 /* back_edge_detector.hpp in Headers */ = {isa = PBXBuildFile; fileRef = DA034C90BB2E6C060B0A0B93 /* back_edge_detector.hpp */; };
+		FA3F4AD1AA20BBFF11D6206F /* rich_label_private.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 93C14E08A028C9C6098A3BD5 /* rich_label_private.hpp */; };
 		FC66414CB2E3F0E8B0B747B6 /* tod_new_schedule.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5D46466DBCD81B13621C7342 /* tod_new_schedule.hpp */; };
 /* End PBXBuildFile section */
 
@@ -2405,6 +2407,7 @@
 		91FBBAD71CB6BC3F00470BFE /* filesystem_sdl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = filesystem_sdl.cpp; sourceTree = "<group>"; };
 		91FBBAD91CB6D1B700470BFE /* markov_generator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = markov_generator.cpp; sourceTree = "<group>"; };
 		91FBBADA1CB6D1B700470BFE /* markov_generator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = markov_generator.hpp; sourceTree = "<group>"; };
+		93C14E08A028C9C6098A3BD5 /* rich_label_private.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = rich_label_private.hpp; path = rich_label_private.hpp; sourceTree = "<group>"; };
 		9577DD182C1E0AD20031135F /* ai_target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ai_target.hpp; sourceTree = "<group>"; };
 		9577DD1A2C1E0AF40031135F /* campaign_type.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = campaign_type.hpp; sourceTree = "<group>"; };
 		9577DD1C2C1E0C020031135F /* defeat_condition.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = defeat_condition.hpp; sourceTree = "<group>"; };
@@ -4124,6 +4127,7 @@
 				46F92D342174F6A300602C1C /* window_private.hpp */,
 				46F92D2E2174F6A300602C1C /* window.cpp */,
 				46F92D472174F6A300602C1C /* window.hpp */,
+				93C14E08A028C9C6098A3BD5 /* rich_label_private.hpp */,
 			);
 			path = widgets;
 			sourceTree = "<group>";
@@ -5205,6 +5209,7 @@
 				48C54CF8AD9615C43EB823E7 /* addon_server_info.hpp in Headers */,
 				B14E4163984EED844169EF4F /* attributes.hpp in Headers */,
 				08964907BF0C2F261FC984DC /* reachmap_options.hpp in Headers */,
+				742C4A1390CDD9E576AEB656 /* rich_label_private.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5231,6 +5236,7 @@
 				E60E437B8712EC8D22CA2608 /* addon_server_info.hpp in Headers */,
 				7C4740B081A838A09779FAAA /* attributes.hpp in Headers */,
 				63B0402A889C6663911DC677 /* reachmap_options.hpp in Headers */,
+				FA3F4AD1AA20BBFF11D6206F /* rich_label_private.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -16,10 +16,13 @@
 #pragma once
 
 #include "color.hpp"
+#include "gui/widgets/rich_label_private.hpp"
 #include "gui/widgets/styled_widget.hpp"
 
 #include "gui/core/canvas_private.hpp"
 #include "gui/core/widget_definition.hpp"
+
+#include <boost/multi_array.hpp>
 
 namespace gui2
 {
@@ -43,12 +46,7 @@ public:
 
 	virtual bool can_wrap() const override
 	{
-		return can_wrap_ || characters_per_line_ != 0;
-	}
-
-	virtual unsigned get_characters_per_line() const override
-	{
-		return characters_per_line_;
+		return can_wrap_;
 	}
 
 	virtual bool get_link_aware() const override
@@ -126,14 +124,6 @@ public:
 	// Show a given DOM (given as a config)
 	void set_dom(const config& dom);
 
-	// Given a parsed config from help markup,
-	// layout it into a config that can be understood by canvas
-	std::pair<config, point> get_parsed_text(
-		const config& parsed_text,
-		const point& origin,
-		const unsigned init_width,
-		const bool finalize = false);
-
 	// Attaches a callback function that will be called when a link is clicked
 	void register_link_callback(std::function<void(std::string)> link_handler);
 
@@ -160,13 +150,6 @@ private:
 
 	/** Holds the rich_label can wrap or not. */
 	bool can_wrap_;
-
-	/**
-	 * The maximum number of characters per line.
-	 *
-	 * The maximum is not an exact maximum, it uses the average character width.
-	 */
-	unsigned characters_per_line_;
 
 	/**
 	 * Whether the rich_label is link aware, rendering links with special formatting
