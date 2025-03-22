@@ -15,7 +15,11 @@
 
 #pragma once
 
+#include "color.hpp"
 #include "config.hpp"
+#include "font/attributes.hpp"
+#include "font/standard_colors.hpp"
+#include "gui/widgets/helper.hpp"
 #include "log.hpp"
 #include "sdl/point.hpp"
 #include "sdl/rect.hpp"
@@ -31,7 +35,23 @@ static lg::log_domain log_rich_label("gui/widget/rich_label");
 namespace gui2
 {
 
-// }------------ ITEMS (Declarations) -------------{
+namespace
+{
+using namespace std::string_literals;
+
+/** Possible formatting tags, must be the same as those in gui2::text_shape::draw */
+const std::array format_tags{ "bold"s, "b"s, "italic"s, "i"s, "underline"s, "u"s };
+}
+
+std::pair<config, point> generate_layout(
+    const config& parsed_text,
+    const point& origin,
+    const unsigned init_width,
+    std::vector<std::pair<rect, std::string>> links,
+    const int padding,
+    const bool finalize = false);
+
+// }------------ ITEMS -------------{
 struct item
 {
 private:
@@ -39,38 +59,117 @@ private:
     point size_;
 
 protected:
-    void set_size(const point& size) { size_ = size; }
+	int max_width_;
+
+	void set_size(const point& size) { size_ = size; }
 
 public:
-    explicit item()
+	item() = delete;
+    explicit item(const int max_width)
         : origin_(0, 0)
         , size_(0, 0)
+		, max_width_(max_width)
     {}
 
     virtual ~item();
 
     void set_origin(const point& origin) { origin_ = origin; }
+	void set_origin(const int x, const int y) { origin_ = point(x, y); }
     point origin() const { return origin_; }
     point size() const { return size_; }
 };
 
-struct text;
+struct text: public item
+{
+	explicit text(
+		const int max_width,
+		const std::string& align,
+		const std::string& font_family,
+		const int font_size,
+		const std::string& font_style,
+		const color_t& text_color_enabled
+	)
+		: item(max_width)
+		, text_()
+		, align_(align)
+		, font_family_(font_family)
+		, font_size_(font_size)
+		, font_style_(font_style)
+		, text_color_enabled_(text_color_enabled)
+	{};
+
+	std::pair<size_t, size_t> add_text(const std::string& text)
+	{
+		size_t start = text_.size();
+		text_ += text;
+		return { start, text_.size() };
+	}
+
+	operator config()
+	{
+		config cfg;
+		cfg["text"] = text_;
+		cfg["color"] = text_color_enabled_.to_rgba_string();
+		cfg["font_family"] = font_family_;
+		cfg["font_size"] = font_size_;
+		cfg["font_style"] = font_style_;
+		cfg["text_alignment"] = align_;
+		cfg["x"] = origin().x;
+		cfg["y"] = origin().y;
+		cfg["w"] = "(text_width)";
+		cfg["h"] = "(text_height)";
+		cfg["maximum_width"] = max_width_;
+		cfg["parse_text_as_formula"] = false;
+
+		// for (const auto attr : text_attributes_)
+		// {
+
+		// }
+		return cfg;
+	}
+
+	private:
+		t_string text_;
+		const std::string align_;
+		const std::string font_family_;
+		const int font_size_;
+		const std::string font_style_;
+		const color_t text_color_enabled_;
+
+		font::attribute_list text_attributes_;
+};
+
 struct image: public item
 {
-    explicit image(const config& cfg, const int max_width, const int padding)
-        : item()
+	explicit image(
+		const std::string& src,
+		const bool floating,
+		const std::string& align,
+		const int max_width,
+		const int padding
+	)
+		: item(max_width)
 		, padding_(padding)
-		, max_width_(max_width)
-		, floating_(cfg["float"].to_bool())
-		, src_(cfg["name"].str())
-		, align_(cfg["align"].str("left"))
+		, floating_(floating)
+		, src_(src)
+		, align_(align)
     {
 		// TODO should trigger warning/abort when src_ is empty
     }
 
+	operator config()
+	{
+		config cfg;
+		cfg["name"] = src_;
+		cfg["x"] = origin().x;
+		cfg["y"] = origin().y;
+		cfg["w"] = "(image_width)";
+		cfg["h"] = "(image_height)";
+		return cfg;
+	}
+
 private:
 	const int padding_;
-	const int max_width_;
 	const bool floating_;
 	const std::string src_;
 	const std::string align_;
@@ -78,10 +177,85 @@ private:
 
 struct table: public item
 {
-    explicit table(const config& cfg, const int max_width, const int padding);
+	explicit table(const config& cfg, const int max_width, const int padding)
+		: item(max_width)
+		, cfg_(cfg)
+		, rows_(cfg.child_count("row"))
+		, columns_(cfg.mandatory_child("row").child_count("col"))
+		, padding_(padding)
+		, row_heights_(rows_, 0)
+		, col_widths_(columns_, 0)
+		, cell_sizes_(boost::extents[rows_][columns_])
+	{
+		if (columns_ == 0) {
+			columns_ = 1;
+		}
+		max_cell_width_ = max_width/columns_;
+	}
 
-	std::array<int, 2> get_padding(const config::attribute_value& val) const;
-	void calculate_cell_sizes();
+	std::array<int, 2> get_padding(const config::attribute_value& val) const
+	{
+		if(val.blank()) {
+			return std::array{ padding_, padding_ };
+		} else {
+			auto paddings = utils::split(val.str(), ' ');
+			return std::array{ std::stoi(paddings[0]), std::stoi(paddings[1]) };
+		}
+	}
+
+	void calculate_cell_sizes()
+	{
+		point pos;
+		point origin(this->origin());
+		int row_idx = 0, col_idx = 0;
+
+		// optimal col width calculation
+		for(const config& row : cfg_.child_range("row")) {
+			pos.x = origin.x;
+			col_idx = 0;
+
+			// order: top padding|bottom padding
+			std::array<int, 2> row_paddings = get_padding(row["padding"]);
+
+			pos.y += row_paddings[0];
+			for(const config& col : row.child_range("col")) {
+				// DBG_GUI_RL << "table cell origin (pre-layout): " << pos.x << ", " << pos.y;
+				config col_cfg;
+				col_cfg.append_children(col);
+				config& col_txt_cfg = col_cfg.add_child("text");
+				col_txt_cfg.append_attributes(col);
+
+				// order: left padding|right padding
+				std::array<int, 2> col_paddings = get_padding(col["padding"]);
+				int cell_width = max_cell_width_ - col_paddings[0] - col_paddings[1];
+
+				pos.x += col_paddings[0];
+
+				// store calculation results for cell sizes
+				cell_sizes_[row_idx][col_idx] = generate_layout(col_cfg, pos, max_cell_width_, {}, padding_).second;
+
+				// column post-processing
+				row_heights_[row_idx] = std::max(row_heights_[row_idx], cell_sizes_[row_idx][col_idx].y);
+				if (!cfg_["width"].empty()) {
+					col_widths_[col_idx] = cell_width;
+				}
+				col_widths_[col_idx] = std::max(col_widths_[col_idx], cell_sizes_[row_idx][col_idx].x);
+				if (cfg_["width"].empty()) {
+					col_widths_[col_idx] = std::min(col_widths_[col_idx], cell_width);
+				}
+
+				// DBG_GUI_RL << "table row " << row_idx << " height: " << row_heights_[row_idx]
+				//            << "col " << col_idx << " width: " << col_widths_[col_idx];
+
+				pos.x += cell_width;
+				pos.x += col_paddings[1];
+				col_idx++;
+			}
+
+			pos.y += row_heights_[row_idx] + row_paddings[1];
+			row_idx++;
+		}
+	}
 
 	private:
 		config cfg_;
@@ -91,6 +265,7 @@ struct table: public item
 		std::vector<int> row_heights_, col_widths_;
 		boost::multi_array<point, 2> cell_sizes_;
 };
+
 
 /**
  * Given a parsed config from help markup,
@@ -102,7 +277,7 @@ std::pair<config, point> generate_layout(
     const unsigned init_width,
     std::vector<std::pair<rect, std::string>> links,
     const int padding,
-    const bool finalize = false)
+    const bool finalize)
 {
 	// Initial width
 	DBG_GUI_RL << "Initial width: " << init_width;
@@ -119,8 +294,10 @@ std::pair<config, point> generate_layout(
 	}
 
 	config text_dom;
-	config* curr_item = nullptr;
+	// config* curr_item = nullptr;
 	config* remaining_item = nullptr;
+
+	item* curr_item = nullptr;
 
 	bool is_text = false;
 	bool is_image = false;
@@ -137,19 +314,23 @@ std::pair<config, point> generate_layout(
 	for(const auto [key, child] : parsed_text.all_children_view()) {
 		if(key == "img") {
 
-			image img(child, init_width, padding);
+			////////////// New Code /////////////////
+			image img(child["src"], child["float"].to_bool(false), child["align"].str("left"), init_width, padding);
+			curr_item = &img;
 			img.set_origin(pos);
-			/*
+			////////////////////////////////////////
+
 			std::string align = child["align"].str("left");
 
-			curr_item = &(text_dom.add_child("image"));
-			(*curr_item)["name"] = child["src"];
-			(*curr_item)["x"] = 0;
-			(*curr_item)["y"] = 0;
-			(*curr_item)["w"] = "(image_width)";
-			(*curr_item)["h"] = "(image_height)";
+			// curr_item = &(text_dom.add_child("image"));
+			// (*curr_item)["name"] = child["src"];
+			// (*curr_item)["x"] = 0;
+			// (*curr_item)["y"] = 0;
+			// (*curr_item)["w"] = "(image_width)";
+			// (*curr_item)["h"] = "(image_height)";
 
-			const point& curr_img_size = get_image_size(*curr_item);
+			// const point& curr_img_size = get_image_size(*curr_item);
+			const point& curr_img_size = img.size();
 
 			prev_blk_height += text_height;
 			text_height = 0;
@@ -167,8 +348,9 @@ std::pair<config, point> generate_layout(
 					float_pos.y += float_size.y;
 				}
 
-				(*curr_item)["x"] = float_pos.x;
-				(*curr_item)["y"] = pos.y + float_pos.y;
+				// (*curr_item)["x"] = float_pos.x;
+				// (*curr_item)["y"] = pos.y + float_pos.y;
+				img.set_origin(float_pos.x, pos.y + float_pos.y);
 
 				x = (align == "left") ? float_size.x : 0;
 				float_size.x = curr_img_size.x + padding;
@@ -179,16 +361,14 @@ std::pair<config, point> generate_layout(
 
 			} else {
 
+				int img_x = pos.x;
 				if (align == "right") {
-					(*curr_item)["x"] = init_width - curr_img_size.x - pos.x;
+					img_x = init_width - curr_img_size.x - pos.x;
 				} else if (align == "middle" || align == "center") {
 					// works for single image only
-					(*curr_item)["x"] = pos.x + (init_width - curr_img_size.x)/2;
-				} else {
-					(*curr_item)["x"] = pos.x;
+					img_x = pos.x + (init_width - curr_img_size.x)/2;
 				}
-
-				(*curr_item)["y"] = pos.y;
+				img.set_origin(img_x, pos.y);
 
 				img_size.x += curr_img_size.x + padding;
 				img_size.y = std::max(img_size.y, curr_img_size.y);
@@ -203,8 +383,6 @@ std::pair<config, point> generate_layout(
 
 				is_float = false;
 			}
-
-			*/
 
 			w = std::max(w, x);
 
@@ -402,6 +580,7 @@ std::pair<config, point> generate_layout(
 			x = origin.x;
 
 		} else if(key == "break" || key == "br") {
+
 			if (curr_item == nullptr) {
 				curr_item = &(text_dom.add_child("text"));
 				default_text_config(curr_item, pos, init_width);
@@ -413,9 +592,10 @@ std::pair<config, point> generate_layout(
 				prev_blk_height += text_height + padding;
 				text_height = 0;
 				pos = point(origin.x, prev_blk_height);
-			} else {
-				add_text_with_attribute(*curr_item, "\n");
+			} else if (text* txt = dynamic_cast<text*>(curr_item)) {
+				txt->add_text("\n");
 			}
+
 
 			x = origin.x;
 			is_image = false;
@@ -429,6 +609,7 @@ std::pair<config, point> generate_layout(
 			is_text = false;
 
 		} else {
+
 			std::string line = child["text"];
 
 			if (!finalize && line.empty()) {
@@ -469,7 +650,7 @@ std::pair<config, point> generate_layout(
 					if (!part2.empty() && parts.size() > 1) {
 						part2 = (part2[0] == '\n') ? part2.substr(1) : part2;
 						part2_cfg.add_child("text")["text"] = parts.back();
-						part2_cfg = generate_layout(part2_cfg, point(origin.x, prev_blk_height), init_width, false).first;
+						part2_cfg = generate_layout(part2_cfg, point(origin.x, prev_blk_height), init_width, links, padding, false).first;
 						remaining_item = &part2_cfg;
 					}
 
@@ -488,11 +669,16 @@ std::pair<config, point> generate_layout(
 				new_text_block = false;
 			}
 
+			text* t = dynamic_cast<text*>(curr_item);
+			if (!t) break;
+
 			// }---------- TEXT TAGS -----------{
-			int tmp_h = get_text_size(*curr_item, init_width - (x == 0 ? float_size.x : x)).y;
+			// TODO set correct width
+			// int tmp_h = get_text_size(*curr_item, init_width - (x == 0 ? float_size.x : x)).y;
+			int tmp_h = t->size().y;
 
 			if (is_text && key == "text") {
-				add_text_with_attribute(*curr_item, "\n\n");
+				t->add_text("\n\n");
 			}
 			is_text = false;
 
@@ -507,11 +693,11 @@ std::pair<config, point> generate_layout(
 				// TODO only the formatting tags here support nesting
 
 				add_text_with_attribute(*curr_item, line, key);
-				config parsed_children = generate_layout(child, point(x, prev_blk_height), init_width).first;
+				config parsed_children = generate_layout(child, point(x, prev_blk_height), init_width, links, padding).first;
 
 				for (const auto [parsed_key, parsed_cfg] : parsed_children.all_children_view()) {
 					if (parsed_key == "text") {
-						const auto [start, end] = add_text(*curr_item, parsed_cfg["text"]);
+						const auto [start, end] = t->add_text(parsed_cfg["text"]);
 						for (const config& attr : parsed_cfg.child_range("attribute")) {
 							add_attribute(*curr_item, attr["name"], start + attr["start"].to_int(), start + attr["end"].to_int(), attr["value"]);
 						}
@@ -527,7 +713,7 @@ std::pair<config, point> generate_layout(
 
 			} else if(key == "header" || key == "h") {
 
-				const auto [start, end] = add_text(*curr_item, line);
+				const auto [start, end] = t->add_text(line);
 				add_attribute(*curr_item, "weight", start, end, "heavy");
 				add_attribute(*curr_item, "color", start, end, font::string_to_color("white").to_hex_string());
 				add_attribute(*curr_item, "size", start, end, std::to_string(font::SIZE_TITLE - 2));
@@ -539,7 +725,7 @@ std::pair<config, point> generate_layout(
 			} else if(key == "character_entity") {
 				line = "&" + child["name"].str() + ";";
 
-				const auto [start, end] = add_text(*curr_item, line);
+				const auto [start, end] = t->add_text(line);
 				add_attribute(*curr_item, "face", start, end, "monospace");
 				add_attribute(*curr_item, "color", start, end, font::string_to_color("red").to_hex_string());
 
@@ -549,7 +735,7 @@ std::pair<config, point> generate_layout(
 
 			} else if(key == "span" || key == "format") {
 
-				const auto [start, end] = add_text(*curr_item, line);
+				const auto [start, end] = t->add_text(line);
 				DBG_GUI_RL << "span/format: text=" << line;
 				DBG_GUI_RL << "attributes:";
 
@@ -566,7 +752,7 @@ std::pair<config, point> generate_layout(
 
 				DBG_GUI_RL << "text: text=" << gui2::debug_truncate(line) << "...";
 
-				add_text(*curr_item, line);
+				t->add_text(line);
 
 				point text_size = get_text_size(*curr_item, init_width - (x == 0 ? float_size.x : x));
 				text_size.x -= x;
@@ -680,85 +866,5 @@ std::pair<config, point> generate_layout(
 	DBG_GUI_RL << "Width: " << w << " Height: " << h << " Origin: " << origin;
 	return { text_dom, point(w, h - origin.y) };
 } // function ends
-
-table::table(const config& cfg, const int max_width, const int padding)
-	: item()
-	, cfg_(cfg)
-	, rows_(cfg.child_count("row"))
-	, columns_(cfg.mandatory_child("row").child_count("col"))
-	, padding_(padding)
-	, row_heights_(rows_, 0)
-	, col_widths_(columns_, 0)
-	, cell_sizes_(boost::extents[rows_][columns_])
-{
-	if (columns_ == 0) {
-		columns_ = 1;
-	}
-	max_cell_width_ = max_width/columns_;
-}
-
-std::array<int, 2> table::get_padding(const config::attribute_value& val) const
-{
-	if(val.blank()) {
-		return std::array{ padding_, padding_ };
-	} else {
-		auto paddings = utils::split(val.str(), ' ');
-		return std::array{ std::stoi(paddings[0]), std::stoi(paddings[1]) };
-	}
-}
-
-void table::calculate_cell_sizes()
-{
-	point pos;
-	point origin(this->origin());
-	int row_idx = 0, col_idx = 0;
-
-	// optimal col width calculation
-	for(const config& row : cfg_.child_range("row")) {
-		pos.x = origin.x;
-		col_idx = 0;
-
-		// order: top padding|bottom padding
-		std::array<int, 2> row_paddings = get_padding(row["padding"]);
-
-		pos.y += row_paddings[0];
-		for(const config& col : row.child_range("col")) {
-			// DBG_GUI_RL << "table cell origin (pre-layout): " << pos.x << ", " << pos.y;
-			config col_cfg;
-			col_cfg.append_children(col);
-			config& col_txt_cfg = col_cfg.add_child("text");
-			col_txt_cfg.append_attributes(col);
-
-			// order: left padding|right padding
-			std::array<int, 2> col_paddings = get_padding(col["padding"]);
-			int cell_width = max_cell_width_ - col_paddings[0] - col_paddings[1];
-
-			pos.x += col_paddings[0];
-
-			// store calculation results for cell sizes
-			cell_sizes_[row_idx][col_idx] = generate_layout(col_cfg, pos, max_cell_width_).second;
-
-			// column post-processing
-			row_heights_[row_idx] = std::max(row_heights_[row_idx], cell_sizes_[row_idx][col_idx].y);
-			if (!cfg_["width"].empty()) {
-				col_widths_[col_idx] = cell_width;
-			}
-			col_widths_[col_idx] = std::max(col_widths_[col_idx], cell_sizes_[row_idx][col_idx].x);
-			if (cfg_["width"].empty()) {
-				col_widths_[col_idx] = std::min(col_widths_[col_idx], cell_width);
-			}
-
-			// DBG_GUI_RL << "table row " << row_idx << " height: " << row_heights_[row_idx]
-			//            << "col " << col_idx << " width: " << col_widths_[col_idx];
-
-			pos.x += cell_width;
-			pos.x += col_paddings[1];
-			col_idx++;
-		}
-
-		pos.y += row_heights_[row_idx] + row_paddings[1];
-		row_idx++;
-	}
-}
 
 } // end namespace gui2

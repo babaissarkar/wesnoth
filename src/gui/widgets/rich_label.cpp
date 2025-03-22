@@ -33,20 +33,14 @@
 #include "wml_exception.hpp"
 
 #include <boost/format.hpp>
-#include <boost/multi_array.hpp>
 #include <functional>
 #include <string>
 #include <utility>
 
+#define DBG_GUI_RL LOG_STREAM(debug, log_rich_label)
+
 namespace gui2
 {
-namespace
-{
-using namespace std::string_literals;
-
-/** Possible formatting tags, must be the same as those in gui2::text_shape::draw */
-const std::array format_tags{ "bold"s, "b"s, "italic"s, "i"s, "underline"s, "u"s };
-}
 
 // ------------ WIDGET -----------{
 
@@ -117,15 +111,6 @@ point rich_label::get_image_size(config& img_cfg) const
 		variables.query_value("image_width").as_int(),
 		variables.query_value("image_height").as_int()
 	};
-}
-
-std::pair<size_t, size_t> rich_label::add_text(config& curr_item, const std::string& text)
-{
-	auto& attr = curr_item["text"];
-	size_t start = attr.str().size();
-	attr = attr.str() + text;
-	size_t end = attr.str().size();
-	return { start, end };
 }
 
 void rich_label::add_attribute(
@@ -243,7 +228,7 @@ std::vector<std::string> rich_label::split_in_width(
 }
 
 void rich_label::set_dom(const config& dom) {
-	std::tie(shapes_, size_) = generate_layout(dom, point(0,0), init_w_, links_, true);
+	std::tie(shapes_, size_) = generate_layout(dom, point(0,0), init_w_, links_, padding_, true);
 }
 
 void rich_label::set_label(const t_string& text) {
