@@ -396,20 +396,19 @@ std::pair<config, point> generate_layout(
 	DBG_GUI_RL << "Initial width: " << init_width;
 
 	// Initialization
-	unsigned x = 0;
-	unsigned prev_blk_height = origin.y;
-	unsigned text_height = 0;
-	unsigned h = 0;
-	unsigned w = 0;
+	int x = 0;
+	int prev_blk_height = origin.y;
+	int text_height = 0;
+	int h = 0;
+	int w = 0;
 
 	if (finalize) {
 		links.clear();
 	}
 
 	config text_dom;
-	// config* curr_item = nullptr;
-	config* remaining_item = nullptr;
 
+	item* remaining_item = nullptr;
 	item* curr_item = nullptr;
 
 	bool is_text = false;
@@ -508,9 +507,8 @@ std::pair<config, point> generate_layout(
 
 		} else if(key == "table") {
 			if (curr_item == nullptr) {
-				// curr_item = &(text_dom.add_child("text"));
-				// default_text_config(curr_item, pos, init_width);
 				text txt(init_width, info);
+				curr_item = &txt;
 				new_text_block = false;
 			}
 
@@ -943,9 +941,9 @@ std::pair<config, point> generate_layout(
 			if (remaining_item) {
 				x = origin.x;
 				pos = point(origin.x, pos.y + img_size.y);
-				text_dom.append(*remaining_item);
+				curr_item = remaining_item;
+				text_dom.append(*dynamic_cast<text*>(curr_item));
 				remaining_item = nullptr;
-				curr_item = &text_dom.all_children_view().back().second;
 			}
 		}
 
