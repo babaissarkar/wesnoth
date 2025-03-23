@@ -27,6 +27,7 @@
 #include "sdl/rect.hpp"
 #include "serialization/markup.hpp"
 #include "serialization/string_utils.hpp"
+#include "serialization/unicode.hpp"
 #include "serialization/utf8_exception.hpp"
 #include "video.hpp"
 
@@ -110,6 +111,7 @@ struct text: public item
 		, font_size_(info.font_size)
 		, font_style_(info.font_style)
 		, text_color_enabled_(info.text_color_enabled)
+		, text_attributes_()
 	{};
 
 	t_string get_text() const
@@ -136,14 +138,12 @@ struct text: public item
 		size_t end,
 		const std::string& extra_data)
 	{
-		// TODO WIP
-		// curr_item.add_child("attribute", config{
-		// 	"name"  , attr_name,
-		// 	"start" , start,
-		// 	"end"   , end == 0 ? curr_item["text"].str().size() : end,
-		// 	"value" , extra_data
-		// });
-		// text_attributes_.insert(PangoAttribute *attr)
+		text_attributes_.add_child("attribute", config{
+			"name"  , attr_name,
+			"start" , start,
+			"end"   , end == 0 ? text_.str().size() : end,
+			"value" , extra_data
+		});
 	}
 
 	/**
@@ -154,6 +154,11 @@ struct text: public item
 	void set_max_width(const int width)
 	{
 		max_width_ = width;
+	}
+
+	int get_max_width() const
+	{
+		return max_width_;
 	}
 
 	operator config()
@@ -171,11 +176,7 @@ struct text: public item
 		cfg["h"] = "(text_height)";
 		cfg["maximum_width"] = max_width_;
 		cfg["parse_text_as_formula"] = false;
-
-		// for (const auto attr : text_attributes_)
-		// {
-
-		// }
+		cfg.append(text_attributes_);
 		return cfg;
 	}
 
@@ -187,21 +188,23 @@ struct text: public item
 		const std::string font_style_;
 		const color_t text_color_enabled_;
 
-		font::attribute_list text_attributes_;
+		config text_attributes_;
+
+		// font::attribute_list text_attributes_;
 };
 
 struct image: public item
 {
 	explicit image(
 		const std::string& src,
-		const bool floating,
+		// const bool floating,
 		const std::string& align,
-		const int max_width,
-		const int padding
+		const int max_width
+		// const int padding
 	)
 		: item(max_width)
-		, padding_(padding)
-		, floating_(floating)
+		// , padding_(padding)
+		// , floating_(floating)
 		, src_(src)
 		, align_(align)
     {
@@ -221,8 +224,8 @@ struct image: public item
 	}
 
 private:
-	const int padding_;
-	const bool floating_;
+	// const int padding_;
+	// const bool floating_;
 	const std::string src_;
 	const std::string align_;
 };
@@ -380,6 +383,63 @@ size_t get_split_location(std::string_view text, const point& pos)
 	return len;
 }
 
+void add_link(
+	text& txt,
+	const std::string& name,
+	const std::string& dest,
+	std::vector<std::pair<rect, std::string>>& links,
+	const layout_info& info,
+	int img_width)
+{
+	// TODO algorithm needs to be text_alignment independent
+	// TODO link after right aligned images
+	point origin = txt.origin();
+	const int max_width = txt.get_max_width();
+
+	DBG_GUI_RL << "add_link: " << name << "->" << dest;
+	DBG_GUI_RL << "origin: " << origin;
+	DBG_GUI_RL << "width=" << img_width;
+
+	point t_start, t_end;
+
+	txt.set_max_width(max_width - origin.x - img_width);
+	t_start = origin + get_xy_from_offset(utf8::size(txt.get_text()));
+	DBG_GUI_RL << "link text start:" << t_start;
+
+	std::string link_text = name.empty() ? dest : name;
+	const auto [start, end] = txt.add_text(link_text);
+	txt.add_attribute("color", start, end, info.link_color.to_hex_string());
+
+	t_end.x = origin.x + get_xy_from_offset(utf8::size(txt.get_text())).x;
+	DBG_GUI_RL << "link text end:" << t_end;
+
+	int text_height = font::get_max_height(info.font_size);
+
+	// Add link
+	if (t_end.x > t_start.x) {
+		rect link_rect{ t_start, point(t_end.x - t_start.x, text_height)};
+		links.emplace_back(link_rect, dest);
+
+		DBG_GUI_RL << "added link at rect: " << link_rect;
+
+	} else {
+		//link straddles two lines, break into two rects
+
+		point t_size(max_width - t_start.x - (origin.x == 0 ? img_width : 0), t_end.y - t_start.y);
+		point link_start2(origin.x, t_start.y + 1.3*text_height);
+		point t_size2(t_end.x, t_end.y - t_start.y);
+
+		rect link_rect{ t_start, point{ t_size.x, text_height } };
+		rect link_rect2{ link_start2, point{ t_size2.x, text_height } };
+
+		links.emplace_back(link_rect, dest);
+		links.emplace_back(link_rect2, dest);
+
+		DBG_GUI_RL << "added link at rect 1: " << link_rect;
+		DBG_GUI_RL << "added link at rect 2: " << link_rect2;
+	}
+}
+
 /**
  * Given a parsed config from help markup,
  * layout it into a config that can be understood by canvas
@@ -408,7 +468,7 @@ std::pair<config, point> generate_layout(
 
 	config text_dom;
 
-	item* remaining_item = nullptr;
+	config* remaining_item = nullptr;
 	item* curr_item = nullptr;
 
 	bool is_text = false;
@@ -425,27 +485,17 @@ std::pair<config, point> generate_layout(
 
 	for(const auto [key, child] : parsed_text.all_children_view()) {
 		if(key == "img") {
+			prev_blk_height += text_height;
+			text_height = 0;
 
 			////////////// New Code /////////////////
-			image img(child["src"], child["float"].to_bool(false), child["align"].str("left"), init_width, info.padding);
+			image img(child["src"], child["align"].str("left"), init_width);
 			curr_item = &img;
 			img.set_origin(pos);
 			////////////////////////////////////////
 
 			std::string align = child["align"].str("left");
-
-			// curr_item = &(text_dom.add_child("image"));
-			// (*curr_item)["name"] = child["src"];
-			// (*curr_item)["x"] = 0;
-			// (*curr_item)["y"] = 0;
-			// (*curr_item)["w"] = "(image_width)";
-			// (*curr_item)["h"] = "(image_height)";
-
-			// const point& curr_img_size = get_image_size(*curr_item);
 			const point& curr_img_size = img.size();
-
-			prev_blk_height += text_height;
-			text_height = 0;
 
 			if (child["float"].to_bool(false)) {
 
@@ -460,8 +510,6 @@ std::pair<config, point> generate_layout(
 					float_pos.y += float_size.y;
 				}
 
-				// (*curr_item)["x"] = float_pos.x;
-				// (*curr_item)["y"] = pos.y + float_pos.y;
 				img.set_origin(float_pos.x, pos.y + float_pos.y);
 
 				x = (align == "left") ? float_size.x : 0;
@@ -497,6 +545,8 @@ std::pair<config, point> generate_layout(
 			}
 
 			w = std::max(w, x);
+
+			text_dom.add_child("image", img);
 
 			is_image = true;
 			is_text = false;
@@ -681,7 +731,7 @@ std::pair<config, point> generate_layout(
 				row_idx++;
 			}
 
-			w = std::max(w, static_cast<unsigned>(pos.x));
+			w = std::max(w, pos.x);
 			prev_blk_height = pos.y;
 			text_height = 0;
 			pos.x = origin.x;
@@ -801,7 +851,7 @@ std::pair<config, point> generate_layout(
 
 			if(key == "ref") {
 
-				add_link(*curr_item, line, child["dst"], point(x + origin.x, prev_blk_height), float_size.x);
+				add_link(*t, line, child["dst"], links, info, float_size.x);
 				is_image = false;
 
 				DBG_GUI_RL << "ref: dst=" << child["dst"];
@@ -933,7 +983,7 @@ std::pair<config, point> generate_layout(
 			if (tmp_h > size.y) {
 				tmp_h = 0;
 			}
-			w = std::max(w, x + static_cast<unsigned>(size.x));
+			w = std::max(w, x + size.x);
 
 			text_height += size.y - tmp_h;
 			pos.y += size.y - tmp_h;
@@ -941,9 +991,9 @@ std::pair<config, point> generate_layout(
 			if (remaining_item) {
 				x = origin.x;
 				pos = point(origin.x, pos.y + img_size.y);
-				curr_item = remaining_item;
-				text_dom.append(*dynamic_cast<text*>(curr_item));
+				text_dom.append(*remaining_item);
 				remaining_item = nullptr;
+				// TODO curr_item pointer did not get changed
 			}
 		}
 
@@ -978,7 +1028,7 @@ std::pair<config, point> generate_layout(
 	#endif
 
 	// TODO float and a mix of floats and images and tables
-	h = std::max(static_cast<unsigned>(img_size.y), h);
+	h = std::max(img_size.y, h);
 
 	DBG_GUI_RL << "Width: " << w << " Height: " << h << " Origin: " << origin;
 	return { text_dom, point(w, h - origin.y) };

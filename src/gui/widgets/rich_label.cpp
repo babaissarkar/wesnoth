@@ -27,7 +27,6 @@
 #include "font/sdl_ttf_compat.hpp"
 #include "serialization/markup.hpp"
 #include "serialization/string_utils.hpp"
-#include "serialization/unicode.hpp"
 #include "sound.hpp"
 #include "wml_exception.hpp"
 
@@ -115,58 +114,6 @@ std::pair<size_t, size_t> rich_label::add_text_with_attribute(
 	const auto [start, end] = add_text(curr_item, text);
 	add_attribute(curr_item, attr_name, start, end, extra_data);
 	return { start, end };
-}
-
-void rich_label::add_link(
-	config& curr_item,
-	const std::string& name,
-	const std::string& dest,
-	const point& origin,
-	int img_width)
-{
-	// TODO algorithm needs to be text_alignment independent
-
-	DBG_GUI_RL << "add_link: " << name << "->" << dest;
-	DBG_GUI_RL << "origin: " << origin;
-	DBG_GUI_RL << "width=" << img_width;
-
-	point t_start, t_end;
-
-	setup_text_renderer(curr_item, init_w_ - origin.x - img_width);
-	t_start = origin + get_xy_from_offset(utf8::size(curr_item["text"].str()));
-	DBG_GUI_RL << "link text start:" << t_start;
-
-	std::string link_text = name.empty() ? dest : name;
-	add_text_with_attribute(curr_item, link_text, "color", link_color_.to_hex_string());
-
-	setup_text_renderer(curr_item, init_w_ - origin.x - img_width);
-	t_end.x = origin.x + get_xy_from_offset(utf8::size(curr_item["text"].str())).x;
-	DBG_GUI_RL << "link text end:" << t_end;
-
-	// TODO link after right aligned images
-
-	// Add link
-	if (t_end.x > t_start.x) {
-		rect link_rect{ t_start, point{t_end.x - t_start.x, font::get_max_height(font_size_) }};
-		links_.emplace_back(link_rect, dest);
-
-		DBG_GUI_RL << "added link at rect: " << link_rect;
-
-	} else {
-		//link straddles two lines, break into two rects
-		point t_size(size_.x - t_start.x - (origin.x == 0 ? img_width : 0), t_end.y - t_start.y);
-		point link_start2(origin.x, t_start.y + 1.3*font::get_max_height(font_size_));
-		point t_size2(t_end.x, t_end.y - t_start.y);
-
-		rect link_rect{ t_start, point{ t_size.x, font::get_max_height(font_size_) } };
-		rect link_rect2{ link_start2, point{ t_size2.x, font::get_max_height(font_size_) } };
-
-		links_.emplace_back(link_rect, dest);
-		links_.emplace_back(link_rect2, dest);
-
-		DBG_GUI_RL << "added link at rect 1: " << link_rect;
-		DBG_GUI_RL << "added link at rect 2: " << link_rect2;
-	}
 }
 
 void rich_label::set_dom(const config& dom) {
