@@ -25,7 +25,6 @@
 #include "cursor.hpp"
 #include "font/constants.hpp"
 #include "font/sdl_ttf_compat.hpp"
-#include "gettext.hpp"
 #include "serialization/markup.hpp"
 #include "serialization/string_utils.hpp"
 #include "serialization/unicode.hpp"
@@ -73,12 +72,6 @@ rich_label::rich_label(const implementation::builder_rich_label& builder)
 	set_label(builder.label_string);
 }
 
-color_t rich_label::get_color(const std::string& color)
-{
-	const auto iter = predef_colors_.find(color);
-	return (iter != predef_colors_.end()) ? iter->second : font::string_to_color(color);
-}
-
 wfl::map_formula_callable rich_label::setup_text_renderer(config text_cfg, unsigned width) const
 {
 	// Set up fake render to calculate text position
@@ -111,21 +104,6 @@ point rich_label::get_image_size(config& img_cfg) const
 		variables.query_value("image_width").as_int(),
 		variables.query_value("image_height").as_int()
 	};
-}
-
-void rich_label::add_attribute(
-	config& curr_item,
-	const std::string& attr_name,
-	size_t start,
-	size_t end,
-	const std::string& extra_data)
-{
-	curr_item.add_child("attribute", config{
-		"name"  , attr_name,
-		"start" , start,
-		"end"   , end == 0 ? curr_item["text"].str().size() : end,
-		"value" , extra_data
-	});
 }
 
 std::pair<size_t, size_t> rich_label::add_text_with_attribute(
@@ -191,70 +169,23 @@ void rich_label::add_link(
 	}
 }
 
-size_t rich_label::get_split_location(std::string_view text, const point& pos)
-{
-	size_t len = get_offset_from_xy(pos);
-	len = (len > text.size()-1) ? text.size()-1 : len;
-
-	// break only at word boundary
-	char c;
-	while(!std::isspace(c = text[len])) {
-		len--;
-		if (len == 0) {
-			break;
-		}
-	}
-
-	return len;
-}
-
-std::vector<std::string> rich_label::split_in_width(
-	const std::string &s,
-	const int font_size,
-	const unsigned width)
-{
-	std::vector<std::string> res;
-	try {
-		const std::string& first_line = font::pango_word_wrap(s, font_size, width, -1, 1, true);
-		res.push_back(first_line);
-		if(s.size() > first_line.size()) {
-			res.push_back(s.substr(first_line.size()));
-		}
-	} catch (utf8::invalid_utf8_exception&) {
-		throw markup::parse_error(_("corrupted original file"));
-	}
-
-	return res;
-}
-
 void rich_label::set_dom(const config& dom) {
-	std::tie(shapes_, size_) = generate_layout(dom, point(0,0), init_w_, links_, padding_, true);
+	layout_info info;
+	info.padding = padding_;
+	info.align = encode_text_alignment(get_text_alignment());
+	info.font_size = font_size_;
+	info.font_family = font_family_;
+	info.font_style = font_style_;
+	info.link_color = link_color_;
+	info.predef_colors = predef_colors_;
+	info.text_color_enabled = text_color_enabled_;
+	info.text_color_disabled = text_color_disabled_;
+
+	std::tie(shapes_, size_) = generate_layout(dom, point(0,0), init_w_, links_, info, true);
 }
 
 void rich_label::set_label(const t_string& text) {
 	set_dom(markup::parse_text(text));
-}
-
-void rich_label::default_text_config(
-	config* txt_ptr,
-	const point& pos,
-	const int max_width,
-	const t_string& text)
-{
-	if (txt_ptr != nullptr) {
-		(*txt_ptr)["text"] = text;
-		(*txt_ptr)["color"] = text_color_enabled_.to_rgba_string();
-		(*txt_ptr)["font_family"] = font_family_;
-		(*txt_ptr)["font_size"] = font_size_;
-		(*txt_ptr)["font_style"] = font_style_;
-		(*txt_ptr)["text_alignment"] = encode_text_alignment(get_text_alignment());
-		(*txt_ptr)["x"] = pos.x;
-		(*txt_ptr)["y"] = pos.y;
-		(*txt_ptr)["w"] = "(text_width)";
-		(*txt_ptr)["h"] = "(text_height)";
-		(*txt_ptr)["maximum_width"] = max_width;
-		(*txt_ptr)["parse_text_as_formula"] = false;
-	}
 }
 
 void rich_label::update_canvas()

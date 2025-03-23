@@ -238,23 +238,6 @@ private:
 
 	std::function<void(std::string)> link_handler_;
 
-	int get_offset_from_xy(const point& position) const
-	{
-		return font::get_text_renderer().xy_to_index(position);
-	}
-
-	point get_xy_from_offset(const unsigned offset) const
-	{
-		return font::get_text_renderer().get_cursor_position(offset);
-	}
-
-	// A correction to allow inline image to stay at the same height
-	// as the text following it.
-	unsigned baseline_correction(unsigned img_height) {
-		unsigned text_height = font::get_text_renderer().get_size().y;
-		return (text_height > img_height) ? (text_height - img_height)/2 : 0;
-	}
-
 	point calculate_best_size() const override { return size_; };
 
 public:
