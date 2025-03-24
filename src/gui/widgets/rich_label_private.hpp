@@ -15,14 +15,19 @@
 
 #pragma once
 
+#include "gui/core/canvas.hpp"
 #include "color.hpp"
 #include "config.hpp"
 #include "font/attributes.hpp"
 #include "font/sdl_ttf_compat.hpp"
 #include "font/standard_colors.hpp"
+#include "font/text.hpp"
+#include "formula/function.hpp"
 #include "gettext.hpp"
 #include "gui/widgets/helper.hpp"
+#include "gui/widgets/rich_label.hpp"
 #include "log.hpp"
+#include "picture.hpp" // We want the file in src/
 #include "sdl/point.hpp"
 #include "sdl/rect.hpp"
 #include "serialization/markup.hpp"
@@ -76,7 +81,6 @@ std::pair<config, point> generate_layout(
     const layout_info& info,
     const bool finalize = false);
 
-// }------------ ITEMS -------------{
 struct item
 {
 private:
@@ -93,12 +97,12 @@ public:
 		, max_width_(max_width)
     {}
 
-    virtual ~item();
+    virtual ~item() {};
 
     void set_origin(const point& origin) { origin_ = origin; }
 	void set_origin(const int x, const int y) { origin_ = point(x, y); }
     point origin() const { return origin_; }
-    virtual point size() const;
+    virtual point size() const { return {0,0}; };
 };
 
 struct text: public item
@@ -161,7 +165,7 @@ struct text: public item
 		return max_width_;
 	}
 
-	operator config()
+	operator config() const
 	{
 		config cfg;
 		cfg["text"] = text_;
@@ -180,17 +184,32 @@ struct text: public item
 		return cfg;
 	}
 
-	private:
-		t_string text_;
-		const std::string align_;
-		const std::string font_family_;
-		const int font_size_;
-		const std::string font_style_;
-		const color_t text_color_enabled_;
+	point size() const override
+	{
+		wfl::action_function_symbol_table functions;
+		wfl::map_formula_callable variables;
+		variables.add("text", wfl::variant(text_));
+		variables.add("width", wfl::variant(max_width_));
+		variables.add("text_wrap_mode", wfl::variant(PANGO_ELLIPSIZE_NONE));
+		variables.add("fake_draw", wfl::variant(true));
+		text_shape(*this, functions).draw(variables);
+		return {
+			variables.query_value("text_width").as_int(),
+			variables.query_value("text_height").as_int()
+		};
+	}
 
-		config text_attributes_;
+private:
+	t_string text_;
+	const std::string align_;
+	const std::string font_family_;
+	const int font_size_;
+	const std::string font_style_;
+	const color_t text_color_enabled_;
 
-		// font::attribute_list text_attributes_;
+	config text_attributes_;
+
+	// font::attribute_list text_attributes_;
 };
 
 struct image: public item
@@ -221,6 +240,11 @@ struct image: public item
 		cfg["h"] = "(image_height)";
 		// TODO WIP
 		return cfg;
+	}
+
+	point size() const override
+	{
+		return ::image::get_size(::image::locator{src_});
 	}
 
 private:
@@ -312,13 +336,18 @@ struct table: public item
 		}
 	}
 
-	private:
-		config cfg_;
-		layout_info info_;
-		int rows_, columns_;
-		int max_cell_width_;
-		std::vector<int> row_heights_, col_widths_;
-		boost::multi_array<point, 2> cell_sizes_;
+	point size() const override
+	{
+		return {0, 0};
+	}
+
+private:
+	config cfg_;
+	layout_info info_;
+	int rows_, columns_;
+	int max_cell_width_;
+	std::vector<int> row_heights_, col_widths_;
+	boost::multi_array<point, 2> cell_sizes_;
 };
 
 
@@ -326,12 +355,12 @@ struct table: public item
  * A correction to allow inline image to stay at the same height
  * as the text following it.
  */
-unsigned baseline_correction(unsigned img_height) {
+inline unsigned baseline_correction(unsigned img_height) {
 	unsigned text_height = font::get_text_renderer().get_size().y;
 	return (text_height > img_height) ? (text_height - img_height)/2 : 0;
 }
 
-std::vector<std::string> split_in_width(
+inline std::vector<std::string> split_in_width(
 	const std::string &s,
 	const int font_size,
 	const unsigned width)
@@ -350,23 +379,23 @@ std::vector<std::string> split_in_width(
 	return res;
 }
 
-color_t get_color(const layout_info& info, const std::string& color)
+inline color_t get_color(const layout_info& info, const std::string& color)
 {
 	const auto iter = info.predef_colors.find(color);
 	return (iter != info.predef_colors.end()) ? iter->second : font::string_to_color(color);
 }
 
-int get_offset_from_xy(const point& position)
+inline int get_offset_from_xy(const point& position)
 {
 	return font::get_text_renderer().xy_to_index(position);
 }
 
-point get_xy_from_offset(const unsigned offset)
+inline point get_xy_from_offset(const unsigned offset)
 {
 	return font::get_text_renderer().get_cursor_position(offset);
 }
 
-size_t get_split_location(std::string_view text, const point& pos)
+inline size_t get_split_location(std::string_view text, const point& pos)
 {
 	size_t len = get_offset_from_xy(pos);
 	len = (len > text.size()-1) ? text.size()-1 : len;
@@ -383,7 +412,7 @@ size_t get_split_location(std::string_view text, const point& pos)
 	return len;
 }
 
-void add_link(
+inline void add_link(
 	text& txt,
 	const std::string& name,
 	const std::string& dest,
@@ -444,7 +473,7 @@ void add_link(
  * Given a parsed config from help markup,
  * layout it into a config that can be understood by canvas
  */
-std::pair<config, point> generate_layout(
+inline std::pair<config, point> generate_layout(
     const config& parsed_text,
     const point& origin,
     const unsigned init_width,

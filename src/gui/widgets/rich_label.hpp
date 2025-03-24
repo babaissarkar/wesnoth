@@ -212,26 +212,10 @@ private:
 	/** Padding */
 	int padding_;
 
-	/** If color is a predefined color set in resolution, return it, otherwise decode using `font::string_to_color`. */
-	color_t get_color(const std::string& color);
-
 	/** Create template for text config that can be shown in canvas */
 	void default_text_config(config* txt_ptr, const point& pos, const int max_width, const t_string& text = "");
 
-	std::pair<size_t, size_t> add_text(config& curr_item, const std::string& text);
-	void add_attribute(config& curr_item, const std::string& attr_name, size_t start = 0, size_t end = 0, const std::string& extra_data = "");
-	std::pair<size_t, size_t> add_text_with_attribute(config& curr_item, const std::string& text, const std::string& attr_name = "", const std::string& extra_data = "");
-
-	void add_link(config& curr_item, const std::string& name, const std::string& dest, const point& origin, int img_width);
-
-	/** size calculation functions */
-	point get_text_size(config& text_cfg, unsigned width = 0) const;
-	point get_image_size(config& img_cfg) const;
-
 	wfl::map_formula_callable setup_text_renderer(config text_cfg, unsigned width = 0) const;
-
-	size_t get_split_location(std::string_view text, const point& pos);
-	std::vector<std::string> split_in_width(const std::string &s, const int font_size, const unsigned width);
 
 	/** link variables and functions */
 	std::vector<std::pair<rect, std::string>> links_;

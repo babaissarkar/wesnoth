@@ -71,50 +71,27 @@ rich_label::rich_label(const implementation::builder_rich_label& builder)
 	set_label(builder.label_string);
 }
 
-wfl::map_formula_callable rich_label::setup_text_renderer(config text_cfg, unsigned width) const
-{
-	// Set up fake render to calculate text position
-	static wfl::action_function_symbol_table functions;
-	wfl::map_formula_callable variables;
-	variables.add("text", wfl::variant(text_cfg["text"]));
-	variables.add("width", wfl::variant(width));
-	variables.add("text_wrap_mode", wfl::variant(PANGO_ELLIPSIZE_NONE));
-	variables.add("fake_draw", wfl::variant(true));
-	gui2::text_shape{text_cfg, functions}.draw(variables);
-	return variables;
-}
+// wfl::map_formula_callable rich_label::setup_text_renderer(config text_cfg, unsigned width) const
+// {
+// 	// Set up fake render to calculate text position
+// 	static wfl::action_function_symbol_table functions;
+// 	wfl::map_formula_callable variables;
+// 	variables.add("text", wfl::variant(text_cfg["text"]));
+// 	variables.add("width", wfl::variant(width));
+// 	variables.add("text_wrap_mode", wfl::variant(PANGO_ELLIPSIZE_NONE));
+// 	variables.add("fake_draw", wfl::variant(true));
+// 	gui2::text_shape{text_cfg, functions}.draw(variables);
+// 	return variables;
+// }
 
-point rich_label::get_text_size(config& text_cfg, unsigned width) const
-{
-	wfl::map_formula_callable variables = setup_text_renderer(text_cfg, width);
-	return {
-		variables.query_value("text_width").as_int(),
-		variables.query_value("text_height").as_int()
-	};
-}
-
-point rich_label::get_image_size(config& img_cfg) const
-{
-	static wfl::action_function_symbol_table functions;
-	wfl::map_formula_callable variables;
-	variables.add("fake_draw", wfl::variant(true));
-	gui2::image_shape{img_cfg, functions}.draw(variables);
-	return {
-		variables.query_value("image_width").as_int(),
-		variables.query_value("image_height").as_int()
-	};
-}
-
-std::pair<size_t, size_t> rich_label::add_text_with_attribute(
-	config& curr_item,
-	const std::string& text,
-	const std::string& attr_name,
-	const std::string& extra_data)
-{
-	const auto [start, end] = add_text(curr_item, text);
-	add_attribute(curr_item, attr_name, start, end, extra_data);
-	return { start, end };
-}
+// point rich_label::get_text_size(config& text_cfg, unsigned width) const
+// {
+// 	wfl::map_formula_callable variables = setup_text_renderer(text_cfg, width);
+// 	return {
+// 		variables.query_value("text_width").as_int(),
+// 		variables.query_value("text_height").as_int()
+// 	};
+// }
 
 void rich_label::set_dom(const config& dom) {
 	layout_info info;
