@@ -216,7 +216,7 @@ struct image: public item
 	explicit image(
 		const std::string& src,
 		// const bool floating,
-		const std::string& align,
+		// const std::string& align,
 		const int max_width
 		// const int padding
 	)
@@ -224,7 +224,7 @@ struct image: public item
 		// , padding_(padding)
 		// , floating_(floating)
 		, src_(src)
-		, align_(align)
+		// , align_(align)
     {
 		// TODO should trigger warning/abort when src_ is empty
     }
@@ -250,7 +250,7 @@ private:
 	// const int padding_;
 	// const bool floating_;
 	const std::string src_;
-	const std::string align_;
+	// const std::string align_;
 };
 
 struct table: public item
@@ -521,11 +521,9 @@ inline std::pair<config, point> generate_layout(
 			prev_blk_height += text_height;
 			text_height = 0;
 
-			////////////// New Code /////////////////
-			image img(child["src"], child["align"].str("left"), init_width);
+			image img(child["src"], init_width);
 			curr_item = &img;
 			img.set_origin(pos);
-			////////////////////////////////////////
 
 			std::string align = child["align"].str("left");
 			const point& curr_img_size = img.size();
@@ -590,7 +588,7 @@ inline std::pair<config, point> generate_layout(
 
 		} else if(key == "table") {
 			if (curr_item == nullptr) {
-				text txt(init_width, info);
+				static text txt(init_width, info);
 				curr_item = &txt;
 				new_text_block = false;
 			}
@@ -777,7 +775,7 @@ inline std::pair<config, point> generate_layout(
 		} else if(key == "break" || key == "br") {
 
 			if (curr_item == nullptr) {
-				text t(init_width, info);
+				static text t(init_width, info);
 				curr_item = &t;
 				t.set_origin(pos);
 				new_text_block = false;
@@ -861,19 +859,24 @@ inline std::pair<config, point> generate_layout(
 				}
 			}
 
+			DBG_GUI_RL << __LINE__ << " " << __func__;
+
 			if (curr_item == nullptr || new_text_block) {
-				text t(init_width - pos.x - float_size.x, info);
+				static text t(init_width - pos.x - float_size.x, info);
 				curr_item = &t;
 				t.set_origin(pos);
 				new_text_block = false;
 			}
 
+			DBG_GUI_RL << __LINE__ << " " << __func__;
+
 			text* t = dynamic_cast<text*>(curr_item);
 			if (!t) break;
 
+			DBG_GUI_RL << __LINE__ << " " << __func__;
+
 			// }---------- TEXT TAGS -----------{
 			// TODO set correct width
-			// int tmp_h = get_text_size(*curr_item, init_width - (x == 0 ? float_size.x : x)).y;
 			t->set_max_width(init_width - (x == 0 ? float_size.x : x));
 			int tmp_h = t->size().y;
 
@@ -989,7 +992,7 @@ inline std::pair<config, point> generate_layout(
 					wrap_mode = false;
 
 					// rest of the text
-					text t(init_width - pos.x - float_size.x, info);
+					static text t(init_width - pos.x - float_size.x, info);
 					t.set_origin(pos);
 					tmp_h = t.size().y;
 					const auto [start, end] = t.add_text(line);
