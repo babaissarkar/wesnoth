@@ -247,6 +247,15 @@ struct image: public item
 	point size() const override
 	{
 		return ::image::get_size(::image::locator{src_});
+		// wfl::action_function_symbol_table functions;
+		// wfl::map_formula_callable variables;
+		// variables.add("width", wfl::variant(max_width_));
+		// variables.add("fake_draw", wfl::variant(true));
+		// gui2::image_shape{*this, functions}.draw(variables);
+		// return {
+		// 	variables.query_value("image_width").as_int(),
+		// 	variables.query_value("image_height").as_int()
+		// };
 	}
 
 private:
@@ -524,12 +533,12 @@ inline std::pair<config, point> generate_layout(
 			prev_blk_height += text_height;
 			text_height = 0;
 
-			curr_item = std::make_unique<image>(child["src"], init_width);
-			curr_item->set_origin(pos);
+			auto img = std::make_unique<image>(child["src"], init_width);
+			img->set_origin(pos);
+
+			const point& curr_img_size = img->size();
 
 			std::string align = child["align"].str("left");
-			const point& curr_img_size = curr_item->size();
-
 			if (child["float"].to_bool(false)) {
 
 				if (align == "right") {
@@ -543,7 +552,7 @@ inline std::pair<config, point> generate_layout(
 					float_pos.y += float_size.y;
 				}
 
-				curr_item->set_origin(float_pos.x, pos.y + float_pos.y);
+				img->set_origin(float_pos.x, pos.y + float_pos.y);
 
 				x = (align == "left") ? float_size.x : 0;
 				float_size.x = curr_img_size.x + info.padding;
@@ -562,7 +571,7 @@ inline std::pair<config, point> generate_layout(
 					img_x = pos.x + (init_width - curr_img_size.x)/2;
 				}
 
-				curr_item->set_origin(img_x, pos.y);
+				img->set_origin(img_x, pos.y);
 
 				img_size.x += curr_img_size.x + info.padding;
 				img_size.y = std::max(img_size.y, curr_img_size.y);
@@ -580,7 +589,7 @@ inline std::pair<config, point> generate_layout(
 
 			w = std::max(w, x);
 
-			text_dom.add_child("image", *curr_item.release());
+			text_dom.add_child("image", *img);
 
 			is_image = true;
 			is_text = false;
@@ -1002,6 +1011,8 @@ inline std::pair<config, point> generate_layout(
 
 				is_image = false;
 			}
+
+			text_dom.add_child("text", *t);
 
 			t->set_max_width(x == 0 ? float_size.x : x);
 			point size = t->size();
