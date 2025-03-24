@@ -36,6 +36,7 @@
 #include "video.hpp"
 
 #include <boost/multi_array.hpp>
+#include <memory>
 
 static lg::log_domain log_rich_label("gui/widget/rich_label");
 #define DBG_GUI_RL LOG_STREAM(debug, log_rich_label)
@@ -91,17 +92,19 @@ protected:
 
 public:
 	item() = delete;
-    explicit item(const int max_width)
-        : origin_(0, 0)
+	explicit item(const int max_width)
+		: origin_(0, 0)
 		, max_width_(max_width)
-    {}
+	{}
 
     virtual ~item() {};
 
-    void set_origin(const point& origin) { origin_ = origin; }
+	void set_origin(const point& origin) { origin_ = origin; }
 	void set_origin(const int x, const int y) { origin_ = point(x, y); }
-    point origin() const { return origin_; }
-    virtual point size() const { return {0,0}; };
+	point origin() const { return origin_; }
+	virtual point size() const { return {0,0}; };
+
+	virtual operator config() const { return config{}; };
 };
 
 struct text: public item
@@ -164,7 +167,7 @@ struct text: public item
 		return max_width_;
 	}
 
-	operator config() const
+	operator config() const override
 	{
 		config cfg;
 		cfg["text"] = text_;
@@ -229,7 +232,7 @@ struct image: public item
 		// TODO should trigger warning/abort when src_ is empty
     }
 
-	operator config() const
+	operator config() const override
 	{
 		config cfg;
 		cfg["name"] = src_;
@@ -502,7 +505,7 @@ inline std::pair<config, point> generate_layout(
 	config text_dom;
 
 	config* remaining_item = nullptr;
-	item* curr_item = nullptr;
+	std::unique_ptr<item> curr_item = nullptr;
 
 	bool is_text = false;
 	bool is_image = false;
@@ -521,12 +524,11 @@ inline std::pair<config, point> generate_layout(
 			prev_blk_height += text_height;
 			text_height = 0;
 
-			image img(child["src"], init_width);
-			curr_item = &img;
-			img.set_origin(pos);
+			curr_item = std::make_unique<image>(child["src"], init_width);
+			curr_item->set_origin(pos);
 
 			std::string align = child["align"].str("left");
-			const point& curr_img_size = img.size();
+			const point& curr_img_size = curr_item->size();
 
 			if (child["float"].to_bool(false)) {
 
@@ -541,7 +543,7 @@ inline std::pair<config, point> generate_layout(
 					float_pos.y += float_size.y;
 				}
 
-				img.set_origin(float_pos.x, pos.y + float_pos.y);
+				curr_item->set_origin(float_pos.x, pos.y + float_pos.y);
 
 				x = (align == "left") ? float_size.x : 0;
 				float_size.x = curr_img_size.x + info.padding;
@@ -559,7 +561,8 @@ inline std::pair<config, point> generate_layout(
 					// works for single image only
 					img_x = pos.x + (init_width - curr_img_size.x)/2;
 				}
-				img.set_origin(img_x, pos.y);
+
+				curr_item->set_origin(img_x, pos.y);
 
 				img_size.x += curr_img_size.x + info.padding;
 				img_size.y = std::max(img_size.y, curr_img_size.y);
@@ -577,7 +580,7 @@ inline std::pair<config, point> generate_layout(
 
 			w = std::max(w, x);
 
-			text_dom.add_child("image", img);
+			text_dom.add_child("image", *curr_item.release());
 
 			is_image = true;
 			is_text = false;
@@ -588,8 +591,7 @@ inline std::pair<config, point> generate_layout(
 
 		} else if(key == "table") {
 			if (curr_item == nullptr) {
-				static text txt(init_width, info);
-				curr_item = &txt;
+				curr_item = std::make_unique<text>(init_width, info);
 				new_text_block = false;
 			}
 
@@ -775,9 +777,8 @@ inline std::pair<config, point> generate_layout(
 		} else if(key == "break" || key == "br") {
 
 			if (curr_item == nullptr) {
-				static text t(init_width, info);
-				curr_item = &t;
-				t.set_origin(pos);
+				curr_item = std::make_unique<text>(init_width, info);
+				curr_item->set_origin(pos);
 				new_text_block = false;
 			}
 
@@ -786,7 +787,7 @@ inline std::pair<config, point> generate_layout(
 				prev_blk_height += text_height + info.padding;
 				text_height = 0;
 				pos = point(origin.x, prev_blk_height);
-			} else if (text* t = dynamic_cast<text*>(curr_item)) {
+			} else if (text* t = dynamic_cast<text*>(&*curr_item)) {
 				t->add_text("\n");
 			}
 
@@ -824,9 +825,7 @@ inline std::pair<config, point> generate_layout(
 
 					// Text following inline image does not start with linebreak
 					// Add y correction to previous image so that it aligns with the line of text
-					if (text* t = dynamic_cast<text*>(curr_item)) {
-						t->set_origin(t->origin().x, pos.y + baseline_correction(img_size.y));
-					}
+					curr_item->set_origin(curr_item->origin().x, pos.y + baseline_correction(img_size.y));
 
 					// Break the text into two parts:
 					// the first part is a single line of text that fit in the area after the image
@@ -859,21 +858,13 @@ inline std::pair<config, point> generate_layout(
 				}
 			}
 
-			DBG_GUI_RL << __LINE__ << " " << __func__;
-
 			if (curr_item == nullptr || new_text_block) {
-				static text t(init_width - pos.x - float_size.x, info);
-				curr_item = &t;
-				t.set_origin(pos);
+				curr_item = std::make_unique<text>(init_width - pos.x - float_size.x, info);
+				curr_item->set_origin(pos);
 				new_text_block = false;
 			}
 
-			DBG_GUI_RL << __LINE__ << " " << __func__;
-
-			text* t = dynamic_cast<text*>(curr_item);
-			if (!t) break;
-
-			DBG_GUI_RL << __LINE__ << " " << __func__;
+			text* t = dynamic_cast<text*>(&*curr_item);
 
 			// }---------- TEXT TAGS -----------{
 			// TODO set correct width
@@ -992,13 +983,12 @@ inline std::pair<config, point> generate_layout(
 					wrap_mode = false;
 
 					// rest of the text
-					static text t(init_width - pos.x - float_size.x, info);
-					t.set_origin(pos);
-					tmp_h = t.size().y;
-					const auto [start, end] = t.add_text(line);
-					t.add_attribute(key, start, end, "");
-					curr_item = &t;
-
+					auto txt = std::make_unique<text>(init_width - pos.x - float_size.x, info);
+					txt->set_origin(pos);
+					tmp_h = txt->size().y;
+					const auto [start, end] = txt->add_text(line);
+					txt->add_attribute(key, start, end, "");
+					curr_item.reset(txt.release());
 				} else if ((float_size.y > 0) && (text_size.y < float_size.y)) {
 					//TODO padding?
 					// text height less than floating image's height, don't split
