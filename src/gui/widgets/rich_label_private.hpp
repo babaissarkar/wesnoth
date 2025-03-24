@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include "gui/core/canvas.hpp"
 #include "color.hpp"
 #include "config.hpp"
 #include "font/attributes.hpp"
@@ -24,8 +23,8 @@
 #include "font/text.hpp"
 #include "formula/function.hpp"
 #include "gettext.hpp"
+#include "gui/core/canvas_private.hpp"
 #include "gui/widgets/helper.hpp"
-#include "gui/widgets/rich_label.hpp"
 #include "log.hpp"
 #include "picture.hpp" // We want the file in src/
 #include "sdl/point.hpp"
@@ -192,7 +191,7 @@ struct text: public item
 		variables.add("width", wfl::variant(max_width_));
 		variables.add("text_wrap_mode", wfl::variant(PANGO_ELLIPSIZE_NONE));
 		variables.add("fake_draw", wfl::variant(true));
-		text_shape(*this, functions).draw(variables);
+		gui2::text_shape(*this, functions).draw(variables);
 		return {
 			variables.query_value("text_width").as_int(),
 			variables.query_value("text_height").as_int()
@@ -230,7 +229,7 @@ struct image: public item
 		// TODO should trigger warning/abort when src_ is empty
     }
 
-	operator config()
+	operator config() const
 	{
 		config cfg;
 		cfg["name"] = src_;
@@ -264,6 +263,7 @@ struct table: public item
 		, columns_(cfg.mandatory_child("row").child_count("col"))
 		, row_heights_(rows_, 0)
 		, col_widths_(columns_, 0)
+		, table_size_()
 		, cell_sizes_(boost::extents[rows_][columns_])
 	{
 		if (columns_ == 0) {
@@ -284,8 +284,8 @@ struct table: public item
 
 	void calculate_cell_sizes()
 	{
-		point pos;
-		point origin(this->origin());
+		point pos, origin(this->origin());
+		table_size_ = point(0, 0);
 		int row_idx = 0, col_idx = 0;
 
 		// optimal col width calculation
@@ -323,22 +323,25 @@ struct table: public item
 					col_widths_[col_idx] = std::min(col_widths_[col_idx], cell_width);
 				}
 
-				// DBG_GUI_RL << "table row " << row_idx << " height: " << row_heights_[row_idx]
-				//            << "col " << col_idx << " width: " << col_widths_[col_idx];
+				DBG_GUI_RL << "table row " << row_idx << " height: " << row_heights_[row_idx]
+				           << "col " << col_idx << " width: " << col_widths_[col_idx];
 
 				pos.x += cell_width;
 				pos.x += col_paddings[1];
 				col_idx++;
 			}
 
+			table_size_.x = std::max(table_size_.x, pos.x);
 			pos.y += row_heights_[row_idx] + row_paddings[1];
 			row_idx++;
 		}
+
+		table_size_.y = pos.y;
 	}
 
 	point size() const override
 	{
-		return {0, 0};
+		return table_size_;
 	}
 
 private:
@@ -347,6 +350,7 @@ private:
 	int rows_, columns_;
 	int max_cell_width_;
 	std::vector<int> row_heights_, col_widths_;
+	point table_size_;
 	boost::multi_array<point, 2> cell_sizes_;
 };
 
