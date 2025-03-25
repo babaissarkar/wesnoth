@@ -16,7 +16,6 @@
 #pragma once
 
 #include "color.hpp"
-#include "gui/widgets/rich_label_private.hpp"
 #include "gui/widgets/styled_widget.hpp"
 
 #include "gui/core/widget_definition.hpp"

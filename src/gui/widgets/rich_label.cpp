@@ -16,6 +16,7 @@
 #define GETTEXT_DOMAIN "wesnoth-lib"
 
 #include "gui/widgets/rich_label.hpp"
+#include "gui/widgets/rich_label_private.hpp"
 
 #include "gui/core/log.hpp"
 #include "gui/core/widget_definition.hpp"

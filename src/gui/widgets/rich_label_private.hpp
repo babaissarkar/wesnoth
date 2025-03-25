@@ -103,6 +103,8 @@ public:
 	void set_origin(const int x, const int y) { origin_ = point(x, y); }
 	point origin() const { return origin_; }
 	virtual point size() const { return {0,0}; };
+	void set_max_width(const int width)	{ max_width_ = width; }
+	int max_width() const { return max_width_; }
 
 	virtual operator config() const { return config{}; };
 };
@@ -147,24 +149,9 @@ struct text: public item
 		text_attributes_.add_child("attribute", config{
 			"name"  , attr_name,
 			"start" , start,
-			"end"   , end == 0 ? text_.str().size() : end,
+			"end"   , (end == 0 ? text_.str().size() : end),
 			"value" , extra_data
 		});
-	}
-
-	/**
-	 * To calculate the bounds of text, we need to set
-	 * the width to which the text will wrap to first.
-	 * This function does that.
-	 */
-	void set_max_width(const int width)
-	{
-		max_width_ = width;
-	}
-
-	int get_max_width() const
-	{
-		return max_width_;
 	}
 
 	operator config() const override
@@ -437,7 +424,7 @@ inline void add_link(
 	// TODO algorithm needs to be text_alignment independent
 	// TODO link after right aligned images
 	point origin = txt.origin();
-	const int max_width = txt.get_max_width();
+	const int max_width = txt.max_width();
 
 	DBG_GUI_RL << "add_link: " << name << "->" << dest;
 	DBG_GUI_RL << "origin: " << origin;
@@ -527,6 +514,7 @@ inline std::pair<config, point> generate_layout(
 	DBG_GUI_RL << parsed_text.debug();
 
 	for(const auto [key, child] : parsed_text.all_children_view()) {
+		// Main layouting
 		if(key == "img") {
 			prev_blk_height += text_height;
 			text_height = 0;
@@ -968,6 +956,7 @@ inline std::pair<config, point> generate_layout(
 					// first part of the text
 					std::string removed_part = t->get_text().str().substr(len+1);
 					t->set_text(t->get_text().str().substr(0, len));
+					text_dom.add_child("text", *t);
 					float_size = point(0,0);
 
 					// Height update
@@ -989,12 +978,13 @@ inline std::pair<config, point> generate_layout(
 					wrap_mode = false;
 
 					// rest of the text
-					auto txt = std::make_unique<text>(init_width - pos.x - float_size.x, info);
-					txt->set_origin(pos);
-					tmp_h = txt->size().y;
-					const auto [start, end] = txt->add_text(line);
-					txt->add_attribute(key, start, end, "");
-					curr_item.reset(txt.release());
+					curr_item.reset(new text(init_width - pos.x - float_size.x, info));
+					if (text* txt = dynamic_cast<text*>(curr_item.get())) {
+						txt->set_origin(pos);
+						tmp_h = txt->size().y;
+						const auto [start, end] = txt->add_text(line);
+						txt->add_attribute(key, start, end, "");
+					}
 				} else if ((float_size.y > 0) && (text_size.y < float_size.y)) {
 					//TODO padding?
 					// text height less than floating image's height, don't split
@@ -1009,16 +999,17 @@ inline std::pair<config, point> generate_layout(
 				is_image = false;
 			}
 
-			text_dom.add_child("text", *t);
+			// FIXME causes duplicate block addition
+			text_dom.add_child("text", *curr_item);
 
-			t->set_max_width(x == 0 ? float_size.x : x);
-			point size = t->size();
+			curr_item->set_max_width(init_width - (x == 0 ? float_size.x : x));
+			point size = curr_item->size();
+
+			w = std::max(w, x + size.x);
 			// update text size and widget height
 			if (tmp_h > size.y) {
 				tmp_h = 0;
 			}
-			w = std::max(w, x + size.x);
-
 			text_height += size.y - tmp_h;
 			pos.y += size.y - tmp_h;
 
