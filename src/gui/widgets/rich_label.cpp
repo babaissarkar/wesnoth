@@ -71,28 +71,6 @@ rich_label::rich_label(const implementation::builder_rich_label& builder)
 	set_label(builder.label_string);
 }
 
-// wfl::map_formula_callable rich_label::setup_text_renderer(config text_cfg, unsigned width) const
-// {
-// 	// Set up fake render to calculate text position
-// 	static wfl::action_function_symbol_table functions;
-// 	wfl::map_formula_callable variables;
-// 	variables.add("text", wfl::variant(text_cfg["text"]));
-// 	variables.add("width", wfl::variant(width));
-// 	variables.add("text_wrap_mode", wfl::variant(PANGO_ELLIPSIZE_NONE));
-// 	variables.add("fake_draw", wfl::variant(true));
-// 	gui2::text_shape{text_cfg, functions}.draw(variables);
-// 	return variables;
-// }
-
-// point rich_label::get_text_size(config& text_cfg, unsigned width) const
-// {
-// 	wfl::map_formula_callable variables = setup_text_renderer(text_cfg, width);
-// 	return {
-// 		variables.query_value("text_width").as_int(),
-// 		variables.query_value("text_height").as_int()
-// 	};
-// }
-
 void rich_label::set_dom(const config& dom) {
 	layout_info info;
 	info.padding = padding_;

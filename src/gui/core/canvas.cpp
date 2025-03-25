@@ -311,14 +311,6 @@ void image_shape::draw(wfl::map_formula_callable& variables)
 	local_variables.add("clip_x", wfl::variant(x));
 	local_variables.add("clip_y", wfl::variant(y));
 
-	if (variables.has_key("fake_draw") && variables.query_value("fake_draw").as_bool()) {
-		variables.add("image_original_width", wfl::variant(tex.w()));
-		variables.add("image_original_height", wfl::variant(tex.h()));
-		variables.add("image_width", wfl::variant(w ? w : tex.w()));
-		variables.add("image_height", wfl::variant(h ? h : tex.h()));
-		return;
-	}
-
 	// Execute the provided actions for this context.
 	wfl::variant(variables.fake_ptr()).execute_variant(actions_formula_.evaluate(local_variables));
 

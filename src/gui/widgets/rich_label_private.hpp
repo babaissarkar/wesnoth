@@ -76,7 +76,7 @@ public:
 std::pair<config, point> generate_layout(
     const config& parsed_text,
     const point& origin,
-    const unsigned init_width,
+    const int init_width,
     std::vector<std::pair<rect, std::string>> links,
     const layout_info& info,
     const bool finalize = false);
@@ -234,28 +234,26 @@ struct image_element: public item
 
 	operator config() const override
 	{
-		config cfg;
-		cfg["name"] = src_;
-		cfg["x"] = origin().x;
-		cfg["y"] = origin().y;
-		cfg["w"] = "(image_width)";
-		cfg["h"] = "(image_height)";
-		// TODO WIP
-		return cfg;
+		 // best not to do calculations twice, so local var
+		point draw_size = size();
+		return config{
+			"name", src_,
+			"x", origin().x,
+			"y", origin().y,
+			"w", draw_size.x,
+			"h", draw_size.y,
+			"resize_mode", "scale"
+		};
 	}
 
 	point size() const override
 	{
-		return ::image::get_size(::image::locator{src_});
-		// wfl::action_function_symbol_table functions;
-		// wfl::map_formula_callable variables;
-		// variables.add("width", wfl::variant(max_width_));
-		// variables.add("fake_draw", wfl::variant(true));
-		// gui2::image_shape{*this, functions}.draw(variables);
-		// return {
-		// 	variables.query_value("image_width").as_int(),
-		// 	variables.query_value("image_height").as_int()
-		// };
+		point size = ::image::get_size(::image::locator{src_});
+		if (size.x > max_width_) {
+			size.y = size.y * max_width_/size.x;
+			size.x = max_width_;
+		}
+		return size;
 	}
 
 private:
@@ -492,7 +490,7 @@ inline void add_link(
 inline std::pair<config, point> generate_layout(
     const config& parsed_text,
     const point& origin,
-    const unsigned init_width,
+    const int init_width,
     std::vector<std::pair<rect, std::string>> links,
     const layout_info& info,
     const bool finalize)
@@ -796,10 +794,9 @@ inline std::pair<config, point> generate_layout(
 				prev_blk_height += text_height + info.padding;
 				text_height = 0;
 				pos = point(origin.x, prev_blk_height);
-			} else if (text* t = dynamic_cast<text*>(&*curr_item)) {
+			} else if (text* t = dynamic_cast<text*>(curr_item.get())) {
 				t->add_text("\n");
 			}
-
 
 			x = origin.x;
 			is_image = false;
@@ -873,7 +870,7 @@ inline std::pair<config, point> generate_layout(
 				new_text_block = false;
 			}
 
-			text* t = dynamic_cast<text*>(&*curr_item);
+			text* t = dynamic_cast<text*>(curr_item.get());
 
 			// }---------- TEXT TAGS -----------{
 			// TODO set correct width
