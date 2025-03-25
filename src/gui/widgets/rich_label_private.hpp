@@ -501,11 +501,10 @@ inline std::pair<config, point> generate_layout(
 	config* remaining_item = nullptr;
 	std::unique_ptr<item> curr_item = nullptr;
 
-	bool is_text = false;
+	bool is_plain_text = false;
 	bool is_image = false;
 	bool is_float = false;
 	bool wrap_mode = false;
-	bool new_text_block = false;
 
 	point pos(origin);
 	point float_pos, float_size;
@@ -514,6 +513,21 @@ inline std::pair<config, point> generate_layout(
 	DBG_GUI_RL << parsed_text.debug();
 
 	for(const auto [key, child] : parsed_text.all_children_view()) {
+
+		{
+			text* t = dynamic_cast<text*>(curr_item.get());
+			if((key == "img" || key == "table" || key == "break" || key == "br")
+				&& (t != nullptr))
+			{
+				text_dom.add_child("text", *t);
+				curr_item = nullptr;
+			}
+
+			if (key != "text") {
+				is_plain_text = false;
+			}
+		}
+
 		// Main layouting
 		if(key == "img") {
 			prev_blk_height += text_height;
@@ -578,8 +592,6 @@ inline std::pair<config, point> generate_layout(
 			text_dom.add_child("image", *img);
 
 			is_image = true;
-			is_text = false;
-			new_text_block = true;
 
 			DBG_GUI_RL << "image: src=" << child["src"] << ", size=" << img_size;
 			DBG_GUI_RL << "wrap mode: " << wrap_mode << ", floating: " << is_float;
@@ -587,8 +599,9 @@ inline std::pair<config, point> generate_layout(
 		} else if(key == "table") {
 			if (curr_item == nullptr) {
 				curr_item = std::make_unique<text>(init_width, info);
-				new_text_block = false;
 			}
+
+			is_image = false;
 
 			// table doesn't support floating images alongside
 			img_size = point(0,0);
@@ -621,10 +634,6 @@ inline std::pair<config, point> generate_layout(
 			}
 			std::vector<int> col_widths(columns, 0);
 			std::vector<int> row_heights(rows, 0);
-
-			is_text = false;
-			new_text_block = true;
-			is_image = false;
 
 			DBG_GUI_RL << "start table : " << "row= " << rows << " col=" << columns
 			           << " width=" << init_cell_width*columns;
@@ -746,9 +755,6 @@ inline std::pair<config, point> generate_layout(
 
 					DBG_GUI_RL << "jump to next column";
 
-					if (!is_image) {
-						new_text_block = true;
-					}
 					is_image = false;
 					col_idx++;
 				}
@@ -765,7 +771,6 @@ inline std::pair<config, point> generate_layout(
 			pos.x = origin.x;
 
 			is_image = false;
-			is_text = false;
 
 			x = origin.x;
 
@@ -774,7 +779,6 @@ inline std::pair<config, point> generate_layout(
 			if (curr_item == nullptr) {
 				curr_item = std::make_unique<text>(init_width, info);
 				curr_item->set_origin(pos);
-				new_text_block = false;
 			}
 
 			// TODO correct height update
@@ -792,11 +796,6 @@ inline std::pair<config, point> generate_layout(
 
 			DBG_GUI_RL << "linebreak";
 
-			if (!is_image) {
-				new_text_block = true;
-			}
-			is_text = false;
-
 		} else {
 
 			std::string line = child["text"];
@@ -805,6 +804,10 @@ inline std::pair<config, point> generate_layout(
 				continue;
 			}
 
+			// If the text immediately follows a inline image block,
+			// and starts with a linebreak, move the current position just below
+			// the image. If not, set the position just to the right of the image.
+			// TODO does it work if image is right aligned?
 			config part2_cfg;
 			if (is_image && (!is_float)) {
 				if (!line.empty() && line.at(0) == '\n') {
@@ -852,29 +855,24 @@ inline std::pair<config, point> generate_layout(
 				}
 			}
 
-			if (curr_item == nullptr || new_text_block) {
+			text* t = dynamic_cast<text*>(curr_item.get());
+
+			if (curr_item == nullptr || t == nullptr) {
 				curr_item = std::make_unique<text>(init_width - pos.x - float_size.x, info);
 				curr_item->set_origin(pos);
-				new_text_block = false;
+				t = dynamic_cast<text*>(curr_item.get());
 			}
-
-			text* t = dynamic_cast<text*>(curr_item.get());
 
 			// }---------- TEXT TAGS -----------{
 			// TODO set correct width
 			t->set_max_width(init_width - (x == 0 ? float_size.x : x));
 			int tmp_h = t->size().y;
 
-			if (is_text && key == "text") {
-				t->add_text("\n\n");
-			}
-			is_text = false;
+			is_image = false;
 
 			if(key == "ref") {
 
 				add_link(*t, line, child["dst"], links, info, float_size.x);
-				is_image = false;
-
 				DBG_GUI_RL << "ref: dst=" << child["dst"];
 
 			} else if(std::find(format_tags.begin(), format_tags.end(), key) != format_tags.end()) {
@@ -895,8 +893,6 @@ inline std::pair<config, point> generate_layout(
 					}
 				}
 
-				is_image = false;
-
 				DBG_GUI_RL << key << ": text=" << gui2::debug_truncate(line);
 
 			} else if(key == "header" || key == "h") {
@@ -906,9 +902,7 @@ inline std::pair<config, point> generate_layout(
 				t->add_attribute("color", start, end, font::string_to_color("white").to_hex_string());
 				t->add_attribute("size", start, end, std::to_string(font::SIZE_TITLE - 2));
 
-				is_image = false;
-
-				DBG_GUI_RL << "h: text=" << line;
+				DBG_GUI_RL << key << ": text=" << line;
 
 			} else if(key == "character_entity") {
 				line = "&" + child["name"].str() + ";";
@@ -917,16 +911,14 @@ inline std::pair<config, point> generate_layout(
 				t->add_attribute("face", start, end, "monospace");
 				t->add_attribute("color", start, end, font::string_to_color("red").to_hex_string());
 
-				is_image = false;
-
-				DBG_GUI_RL << "entity: text=" << line;
+				DBG_GUI_RL << key << ": text=" << line;
 
 			} else if(key == "span" || key == "format") {
 
 				const auto [start, end] = t->add_text(line);
-				DBG_GUI_RL << "span/format: text=" << line;
-				DBG_GUI_RL << "attributes:";
 
+				DBG_GUI_RL << key << ": text=" << line;
+				DBG_GUI_RL << "attributes:";
 				for (const auto& [key, value] : child.attribute_range()) {
 					if (key != "text") {
 						t->add_attribute(key, start, end, value);
@@ -934,18 +926,22 @@ inline std::pair<config, point> generate_layout(
 					}
 				}
 
-				is_image = false;
-
 			} else if (key == "text") {
 
-				DBG_GUI_RL << "text: text=" << gui2::debug_truncate(line) << "...";
+				DBG_GUI_RL << key << ": text=" << gui2::debug_truncate(line) << "...";
+
+				// Double newline causes a new text block to be generated in the parser.
+				// Readd the linebreaks and attach the new block to the existing text block.
+				if (is_plain_text && key == "text") {
+					t->add_text("\n\n");
+				} else {
+					is_plain_text = true;
+				}
 
 				t->add_text(line);
 				t->set_max_width(init_width - (x == 0 ? float_size.x : x));
 				point text_size = t->size();
 				text_size.x -= x;
-
-				is_text = true;
 
 				if (wrap_mode && (float_size.y > 0) && (text_size.y > float_size.y)) {
 					DBG_GUI_RL << "wrap start";
@@ -995,12 +991,7 @@ inline std::pair<config, point> generate_layout(
 				if (!wrap_mode) {
 					float_size = point(0,0);
 				}
-
-				is_image = false;
 			}
-
-			// FIXME causes duplicate block addition
-			text_dom.add_child("text", *curr_item);
 
 			curr_item->set_max_width(init_width - (x == 0 ? float_size.x : x));
 			point size = curr_item->size();
@@ -1033,6 +1024,10 @@ inline std::pair<config, point> generate_layout(
 		DBG_GUI_RL << "-----------";
 	} // for loop ends
 
+	if(text* t = dynamic_cast<text*>(curr_item.get())) {
+		text_dom.add_child("text", *t);
+	}
+
 	if (w == 0) {
 		w = init_width;
 	}
@@ -1051,6 +1046,8 @@ inline std::pair<config, point> generate_layout(
 		}
 	}
 	#endif
+
+	PLAIN_LOG << "Generated Layout[[\n" << text_dom << "]]";
 
 	// TODO float and a mix of floats and images and tables
 	h = std::max(img_size.y, h);
