@@ -214,9 +214,9 @@ private:
 	// font::attribute_list text_attributes_;
 };
 
-struct image: public item
+struct image_element: public item
 {
-	explicit image(
+	explicit image_element(
 		const std::string& src,
 		// const bool floating,
 		// const std::string& align,
@@ -533,7 +533,7 @@ inline std::pair<config, point> generate_layout(
 			prev_blk_height += text_height;
 			text_height = 0;
 
-			auto img = std::make_unique<image>(child["src"], init_width);
+			auto img = std::make_unique<image_element>(child["src"], init_width);
 			img->set_origin(pos);
 
 			const point& curr_img_size = img->size();
