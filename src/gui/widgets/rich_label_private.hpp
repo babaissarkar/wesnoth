@@ -188,6 +188,18 @@ struct text: public item
 		};
 	}
 
+	/** top-right coordinate of where the last character ends */
+	point end_position() const
+	{
+		font::get_text_renderer().set_text(text_, false);
+		return font::get_text_renderer().get_cursor_position(utf8::size(text_));
+	}
+
+	int text_height() const
+	{
+		return font::get_max_height(font_size_);
+	}
+
 private:
 	t_string text_;
 	const std::string align_;
@@ -351,6 +363,16 @@ private:
 	boost::multi_array<point, 2> cell_sizes_;
 };
 
+inline int aligned_position(const int width, const int max_width, const std::string_view align)
+{
+	if (align == "right") {
+		return max_width - width;
+	} else if (align == "middle" || align == "center") {
+		return (max_width - width)/2;
+	} else {
+		return 0;
+	}
+}
 
 /**
  * A correction to allow inline image to stay at the same height
@@ -391,11 +413,6 @@ inline int get_offset_from_xy(const point& position)
 	return font::get_text_renderer().xy_to_index(position);
 }
 
-inline point get_xy_from_offset(const unsigned offset)
-{
-	return font::get_text_renderer().get_cursor_position(offset);
-}
-
 inline size_t get_split_location(std::string_view text, const point& pos)
 {
 	size_t len = get_offset_from_xy(pos);
@@ -423,6 +440,7 @@ inline void add_link(
 {
 	// TODO algorithm needs to be text_alignment independent
 	// TODO link after right aligned images
+	// TODO why the below does not work?
 	point origin = txt.origin();
 	const int max_width = txt.max_width();
 
@@ -430,20 +448,20 @@ inline void add_link(
 	DBG_GUI_RL << "origin: " << origin;
 	DBG_GUI_RL << "width=" << img_width;
 
-	point t_start, t_end;
+	point t_start(origin), t_end(origin);
 
 	txt.set_max_width(max_width - origin.x - img_width);
-	t_start = origin + get_xy_from_offset(utf8::size(txt.get_text()));
-	DBG_GUI_RL << "link text start:" << t_start;
+	t_start = txt.end_position();
+	DBG_GUI_RL << "link text start: " << t_start;
 
 	std::string link_text = name.empty() ? dest : name;
 	const auto [start, end] = txt.add_text(link_text);
 	txt.add_attribute("color", start, end, info.link_color.to_hex_string());
 
-	t_end.x = origin.x + get_xy_from_offset(utf8::size(txt.get_text())).x;
-	DBG_GUI_RL << "link text end:" << t_end;
+	t_end = txt.end_position();
+	DBG_GUI_RL << "link text end: " << t_end;
 
-	int text_height = font::get_max_height(info.font_size);
+	int text_height = txt.text_height();
 
 	// Add link
 	if (t_end.x > t_start.x) {
@@ -539,14 +557,10 @@ inline std::pair<config, point> generate_layout(
 			const point& curr_img_size = img->size();
 
 			std::string align = child["align"].str("left");
-			if (child["float"].to_bool(false)) {
+			is_float = child["float"].to_bool(false);
+			if (is_float) {
 
-				if (align == "right") {
-					float_pos.x = init_width - curr_img_size.x;
-				} else if (align == "middle" || align == "center") {
-					// works for single image only
-					float_pos.x = float_size.x + (init_width - curr_img_size.x)/2;
-				}
+				float_pos.x = aligned_position(curr_img_size.x, init_width, align);
 
 				if (is_image) {
 					float_pos.y += float_size.y;
@@ -559,19 +573,10 @@ inline std::pair<config, point> generate_layout(
 				float_size.y += curr_img_size.y + info.padding;
 
 				wrap_mode = true;
-				is_float = true;
 
 			} else {
 
-				int img_x = pos.x;
-				if (align == "right") {
-					img_x = init_width - curr_img_size.x - pos.x;
-				} else if (align == "middle" || align == "center") {
-					// works for single image only
-					img_x = pos.x + (init_width - curr_img_size.x)/2;
-				}
-
-				img->set_origin(img_x, pos.y);
+				img->set_origin(pos + point(aligned_position(curr_img_size.x, init_width, align), 0));
 
 				img_size.x += curr_img_size.x + info.padding;
 				img_size.y = std::max(img_size.y, curr_img_size.y);
@@ -584,7 +589,6 @@ inline std::pair<config, point> generate_layout(
 					float_size.y -= curr_img_size.y;
 				}
 
-				is_float = false;
 			}
 
 			w = std::max(w, x);
@@ -963,7 +967,7 @@ inline std::pair<config, point> generate_layout(
 					}
 					text_height += ah - tmp_h;
 
-					prev_blk_height += text_height + 0.3*font::get_max_height(info.font_size);
+					prev_blk_height += text_height + 0.3*t->text_height();
 					pos = point(origin.x, prev_blk_height);
 
 					DBG_GUI_RL << "wrap: " << prev_blk_height << "," << text_height;
@@ -1035,7 +1039,7 @@ inline std::pair<config, point> generate_layout(
 	// DEBUG: draw boxes around links
 	#if LINK_DEBUG_BORDER
 	if (finalize) {
-		for (const auto& entry : links_) {
+		for (const auto& entry : links) {
 			config& link_rect_cfg = text_dom.add_child("rectangle");
 			link_rect_cfg["x"] = entry.first.x;
 			link_rect_cfg["y"] = entry.first.y;
