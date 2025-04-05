@@ -306,7 +306,7 @@ private:
 	wfl::formula actions_formula_;
 
 	/** Any custom Pango text attributes. */
-	font::attribute_list text_attributes_;
+	config::const_child_itors text_attributes_;
 };
 
 }
