@@ -211,7 +211,26 @@ std::string make_link(const std::string& text, const std::string& dst);
 /** Thrown when the help system fails to parse something. */
 struct parse_error : public game::error
 {
-	parse_error(const std::string& msg) : game::error(msg) {}
+	parse_error(std::string::const_iterator error_loc, const std::string& error_msg)
+		: game::error(error_msg)
+		, error_position_(error_loc)
+		, text_start_()
+	{ }
+
+public:
+	/**
+	 * Sets the iterator for where the string starts. Needed for calculating error location.
+	 */
+	void set_text_start(const std::string::const_iterator& start) { text_start_ = start; }
+
+	/**
+	 * @return an error message with the location of the error
+	 * (line number and number of characters from start) added to the start.
+	 */
+	std::string message_with_err_loc() const;
+
+private:
+	std::string::const_iterator error_position_, text_start_;
 };
 
 /**
