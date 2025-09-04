@@ -223,9 +223,9 @@ std::string generate_contents_links(const std::string& section_name, config cons
 std::string generate_contents_links(const section &sec);
 
 /** Thrown when the help system fails to parse something. */
-struct parse_error : public game::error
+struct invalid_topic_error : public game::error
 {
-	parse_error(const std::string& msg) : game::error(msg) {}
+	invalid_topic_error(const std::string& msg) : game::error(msg) {}
 };
 
 /**

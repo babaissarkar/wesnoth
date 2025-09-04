@@ -193,7 +193,7 @@ void parse_config_internal(const config *help_cfg, const config *section_cfg,
 			if (!is_valid_id(id)) {
 				std::stringstream ss;
 				ss << "Invalid ID, used for internal purpose: '" << id << "'";
-				throw parse_error(ss.str());
+				throw invalid_topic_error(ss.str());
 			}
 		}
 		std::string title = level == 0 ? "" : (*section_cfg)["title"].str();
@@ -211,7 +211,7 @@ void parse_config_internal(const config *help_cfg, const config *section_cfg,
 				std::stringstream ss;
 				ss << "Help-section '" << sec_id << "' referenced from '"
 				   << id << "' but could not be found.";
-				throw parse_error(ss.str());
+				throw invalid_topic_error(ss.str());
 			}
 		}
 
@@ -235,7 +235,7 @@ void parse_config_internal(const config *help_cfg, const config *section_cfg,
 		} else if (!(*section_cfg)["sort_topics"].empty()) {
 		  std::stringstream ss;
 		  ss << "Invalid sort option: '" << (*section_cfg)["sort_topics"] << "'";
-		  throw parse_error(ss.str());
+		  throw invalid_topic_error(ss.str());
 		}
 
 		std::vector<topic> generated_topics = generate_topics(sort_generated,(*section_cfg)["generator"]);
@@ -251,7 +251,7 @@ void parse_config_internal(const config *help_cfg, const config *section_cfg,
 				if (!is_valid_id(child_topic.id)) {
 					std::stringstream ss;
 					ss << "Invalid ID, used for internal purpose: '" << id << "'";
-					throw parse_error(ss.str());
+					throw invalid_topic_error(ss.str());
 				}
 				topics.push_back(child_topic);
 			}
@@ -259,7 +259,7 @@ void parse_config_internal(const config *help_cfg, const config *section_cfg,
 				std::stringstream ss;
 				ss << "Help-topic '" << topic_id << "' referenced from '" << id
 				   << "' but could not be found." << std::endl;
-				throw parse_error(ss.str());
+				throw invalid_topic_error(ss.str());
 			}
 		}
 
@@ -1386,8 +1386,7 @@ void generate_contents()
 			hidden_cfg.clear_children("toplevel");
 			hidden_cfg.add_child("toplevel", std::move(hidden_toplevel));
 			hidden_sections = parse_config(&hidden_cfg);
-		}
-		catch (parse_error& e) {
+		} catch(invalid_topic_error& e) {
 			std::stringstream msg;
 			msg << "Parse error when parsing help text: '" << e.message << "'";
 			PLAIN_LOG << msg.str();
