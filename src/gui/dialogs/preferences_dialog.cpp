@@ -80,9 +80,6 @@ void disable_widget_on_toggle_inverted(window& window, widget& w, const std::str
 	window.find_widget<W>(id).set_active(!dynamic_cast<selectable_item&>(w).get_value_bool());
 }
 
-// Ensure the specified index is between 0 and one less than the max
-// number of pager layers (since get_layer_count returns one-past-end).
-
 // Helper to make it easier to immediately apply sound toggles immediately.
 template<bool(*fptr)(bool)>
 void sound_toggle_on_change(window& window, const std::string& id_to_toggle, widget& w)
@@ -645,6 +642,11 @@ void preferences_dialog::initialize_callbacks()
 	//
 	pager.select_tab(4);
 
+	tab_container& mp_pager = pager.find_widget<tab_container>("multiplayer_pager");
+
+	/* GENERAL TAB */
+	mp_pager.select_tab(0);
+
 	/* CHAT LINES */
 	register_integer("chat_lines", true,
 		[]() {return prefs::get().chat_lines();},
@@ -676,9 +678,19 @@ void preferences_dialog::initialize_callbacks()
 		prefs::get().set_lobby_joins(val);
 	});
 
-	/* FRIENDS LIST */
-	listbox& friends_list = find_widget<listbox>("friends_list");
+	/* ALERTS */
+	connect_signal_mouse_left_click(find_widget<button>("mp_alerts"),
+		[](auto&&...) { mp_alerts_options::display(); });
 
+	/* SET WESNOTHD PATH */
+	connect_signal_mouse_left_click(find_widget<button>("mp_wesnothd"),
+		[](auto&&...) { prefs::get().show_wesnothd_server_search(); });
+
+
+	/* FRIENDS TAB */
+	mp_pager.select_tab(1);
+
+	listbox& friends_list = find_widget<listbox>("friends_list");
 	friends_list.clear();
 
 	for(const auto& entry : prefs::get().get_acquaintances()) {
@@ -700,15 +712,6 @@ void preferences_dialog::initialize_callbacks()
 
 	connect_signal_notify_modified(friends_list,
 		[&, this](auto&&...) { on_friends_list_select(friends_list, textbox); });
-
-	/* ALERTS */
-	connect_signal_mouse_left_click(find_widget<button>("mp_alerts"),
-		[](auto&&...) { mp_alerts_options::display(); });
-
-	/* SET WESNOTHD PATH */
-	connect_signal_mouse_left_click(find_widget<button>("mp_wesnothd"),
-		[](auto&&...) { prefs::get().show_wesnothd_server_search(); });
-
 
 	//
 	// ADVANCED PANEL
@@ -1102,8 +1105,8 @@ void preferences_dialog::initialize_tabs(listbox& selector)
 	//
 	// MULTIPLAYER TABS
 	//
-	connect_signal_notify_modified(selector,
-		[this](auto&&...) { on_tab_select(); });
+	// connect_signal_notify_modified(selector,
+	// 	[this](auto&&...) { on_tab_select(); });
 }
 
 void preferences_dialog::pre_show()
@@ -1185,9 +1188,9 @@ void preferences_dialog::handle_gui2_theme_select()
 
 void preferences_dialog::on_tab_select()
 {
-	const int selected_row =
-		std::max(0, find_widget<listbox>("tab_selector").get_selected_row());
-	set_visible_page(static_cast<unsigned int>(selected_row), "tab_pager");
+	// const int selected_row =
+	// 	std::max(0, find_widget<listbox>("tab_selector").get_selected_row());
+	// set_visible_page(static_cast<unsigned int>(selected_row), "tab_pager");
 }
 
 void preferences_dialog::post_show()

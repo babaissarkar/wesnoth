@@ -147,8 +147,7 @@ builder_tab_container::builder_tab_container(const config& cfg)
 	: implementation::builder_styled_widget(cfg)
 {
 	if(cfg.has_child("tab")) {
-		for(const config& tab : cfg.child_range("tab"))
-		{
+		for(const config& tab : cfg.child_range("tab")) {
 			list_items.emplace_back(widget_data{
 				{ "image", {{"label", tab["image"].str()}} },
 				{ "name", {{"label", tab["name"].t_str()}} }
