@@ -1100,15 +1100,6 @@ void preferences_dialog::on_advanced_prefs_list_select(listbox& list)
 	}
 }
 
-void preferences_dialog::initialize_tabs(listbox& selector)
-{
-	//
-	// MULTIPLAYER TABS
-	//
-	// connect_signal_notify_modified(selector,
-	// 	[this](auto&&...) { on_tab_select(); });
-}
-
 void preferences_dialog::pre_show()
 {
 	set_always_save_fields(true);
@@ -1132,11 +1123,6 @@ void preferences_dialog::pre_show()
 
 	pager.select_tab(2);
 	gui2::bind_default_status_label(find_widget<slider>("pixel_scale_slider"));
-}
-
-void preferences_dialog::set_visible_page(unsigned int page, const std::string& pager_id)
-{
-	find_widget<stacked_widget>(pager_id).select_layer(page);
 }
 
 // Special fullsceen callback
@@ -1184,13 +1170,6 @@ void preferences_dialog::handle_gui2_theme_select()
 		prefs::get().set_gui2_theme(gui2_themes_.at(selected_theme));
 		set_retval(gui2::dialogs::title_screen::RELOAD_UI);
 	}
-}
-
-void preferences_dialog::on_tab_select()
-{
-	// const int selected_row =
-	// 	std::max(0, find_widget<listbox>("tab_selector").get_selected_row());
-	// set_visible_page(static_cast<unsigned int>(selected_row), "tab_pager");
 }
 
 void preferences_dialog::post_show()
