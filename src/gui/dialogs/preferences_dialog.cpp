@@ -50,10 +50,10 @@
 #include "gui/widgets/grid.hpp"
 #include "gui/widgets/image.hpp"
 #include "gui/widgets/label.hpp"
-#include "gui/widgets/listbox.hpp"
 #include "gui/widgets/slider.hpp"
-#include "gui/widgets/stacked_widget.hpp"
 #include "gui/widgets/status_label_helper.hpp"
+#include "gui/widgets/stacked_widget.hpp"
+#include "gui/widgets/tab_container.hpp"
 #include "gui/widgets/text_box.hpp"
 #include "gui/widgets/toggle_button.hpp"
 #include "gui/widgets/window.hpp"
@@ -82,10 +82,6 @@ void disable_widget_on_toggle_inverted(window& window, widget& w, const std::str
 
 // Ensure the specified index is between 0 and one less than the max
 // number of pager layers (since get_layer_count returns one-past-end).
-int index_in_pager_range(const int first, const stacked_widget& pager)
-{
-	return std::clamp<int>(first, 0, pager.get_layer_count() - 1);
-}
 
 // Helper to make it easier to immediately apply sound toggles immediately.
 template<bool(*fptr)(bool)>
@@ -121,7 +117,6 @@ preferences_dialog::preferences_dialog(const pref_constants::PREFERENCE_VIEW ini
 	, visible_categories_()
 	, initial_index_(pef_view_map[initial_view])
 {
-	initialize_callbacks();
 }
 
 // Helper function to refresh resolution list
@@ -410,6 +405,8 @@ void preferences_dialog::initialize_callbacks()
 	//
 	// GENERAL PANEL
 	//
+	tab_container& pager = find_widget<tab_container>("pager");
+	pager.select_tab(0);
 
 	/* SCROLL SPEED */
 	register_integer("scroll_speed", true,
@@ -490,6 +487,7 @@ void preferences_dialog::initialize_callbacks()
 	//
 	// DISPLAY PANEL
 	//
+	pager.select_tab(2);
 
 	/* FULLSCREEN TOGGLE */
 	toggle_button& toggle_fullscreen = find_widget<toggle_button>("fullscreen");
@@ -624,6 +622,7 @@ void preferences_dialog::initialize_callbacks()
 	//
 	// SOUND PANEL
 	//
+	pager.select_tab(3);
 
 	/* SOUND FX */
 	initialize_sound_option_group<sound, set_sound, sound_volume, set_sound_volume>("sfx");
@@ -644,6 +643,7 @@ void preferences_dialog::initialize_callbacks()
 	//
 	// MULTIPLAYER PANEL
 	//
+	pager.select_tab(4);
 
 	/* CHAT LINES */
 	register_integer("chat_lines", true,
@@ -713,6 +713,7 @@ void preferences_dialog::initialize_callbacks()
 	//
 	// ADVANCED PANEL
 	//
+	pager.select_tab(5);
 
 	listbox& advanced = find_widget<listbox>("advanced_prefs");
 
@@ -829,6 +830,7 @@ void preferences_dialog::initialize_callbacks()
 	//
 	// HOTKEYS PANEL
 	//
+	pager.select_tab(1);
 
 	multimenu_button& hotkey_menu = find_widget<multimenu_button>("hotkey_category_menu");
 	connect_signal_notify_modified(hotkey_menu,
@@ -862,6 +864,8 @@ void preferences_dialog::initialize_callbacks()
 
 	connect_signal_mouse_left_click(find_widget<button>("btn_reset_hotkeys"),
 		[this](auto&&...) { default_hotkey_callback(); });
+
+	pager.select_tab(0);
 }
 
 listbox& preferences_dialog::setup_hotkey_list()
@@ -1106,6 +1110,8 @@ void preferences_dialog::pre_show()
 {
 	set_always_save_fields(true);
 
+	initialize_callbacks();
+
 	connect_signal_mouse_left_click(find_widget<button>("about"),
 		[](auto&&...) { game_version::display(); });
 
@@ -1115,49 +1121,14 @@ void preferences_dialog::pre_show()
 	// is not the case for those in Advanced
 	//
 
+	tab_container& pager = find_widget<tab_container>("pager");
+
+	pager.select_tab(0);
 	gui2::bind_default_status_label(find_widget<slider>("max_saves_slider"));
 	gui2::bind_default_status_label(find_widget<slider>("turbo_slider"));
+
+	pager.select_tab(2);
 	gui2::bind_default_status_label(find_widget<slider>("pixel_scale_slider"));
-
-	listbox& selector = find_widget<listbox>("selector");
-	stacked_widget& pager = find_widget<stacked_widget>("pager");
-
-	pager.set_find_in_all_layers(true);
-
-	connect_signal_notify_modified(selector,
-		[this](auto&&...) { on_page_select(); });
-
-	keyboard_capture(&selector);
-
-	VALIDATE(selector.get_item_count() == pager.get_layer_count(),
-		"The preferences pager and its selector listbox do not have the same number of items.");
-
-	const int main_index = index_in_pager_range(initial_index_.first, pager);
-
-	// Loops through each pager layer and checks if it has both a tab bar
-	// and stack. If so, it initializes the options for the former and
-	// selects the specified layer of the latter.
-	for(unsigned int i = 0; i < pager.get_layer_count(); ++i) {
-		listbox* tab_selector = pager.get_layer_grid(i)->find_widget<listbox>("tab_selector", false, false);
-
-		stacked_widget* tab_pager = pager.get_layer_grid(i)->find_widget<stacked_widget>("tab_pager", false, false);
-
-		if(tab_pager && tab_selector) {
-			const int ii = static_cast<int>(i);
-			const int tab_index = index_in_pager_range(initial_index_.second, *tab_pager);
-			const int to_select = (ii == main_index ? tab_index : 0);
-
-			// Initialize tabs for this page
-			initialize_tabs(*tab_selector);
-
-			tab_selector->select_row(to_select);
-			tab_pager->select_layer(to_select);
-		}
-	}
-
-	// Finally, select the initial main page
-	selector.select_row(main_index);
-	pager.select_layer(main_index);
 }
 
 void preferences_dialog::set_visible_page(unsigned int page, const std::string& pager_id)
@@ -1210,13 +1181,6 @@ void preferences_dialog::handle_gui2_theme_select()
 		prefs::get().set_gui2_theme(gui2_themes_.at(selected_theme));
 		set_retval(gui2::dialogs::title_screen::RELOAD_UI);
 	}
-}
-
-void preferences_dialog::on_page_select()
-{
-	const int selected_row =
-		std::max(0, find_widget<listbox>("selector").get_selected_row());
-	set_visible_page(static_cast<unsigned int>(selected_row), "pager");
 }
 
 void preferences_dialog::on_tab_select()
