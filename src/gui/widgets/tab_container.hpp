@@ -55,7 +55,7 @@ public:
 	}
 
 	unsigned get_tab_count() const {
-		return generator_->get_item_count();
+		return tab_count_;
 	}
 
 	grid* get_tab_grid(unsigned i)
@@ -93,6 +93,8 @@ private:
 	 */
 	generator_base* generator_;
 
+	int tab_count_;
+
 	/** Get the listbox inside which the tabs are shown */
 	listbox& get_internal_list();
 
@@ -103,6 +105,12 @@ private:
 public:
 	/** Static type getter that does not rely on the widget being constructed. */
 	static const std::string& type();
+
+	/** See @ref widget::find. */
+	virtual widget* find(const std::string_view id, const bool must_be_active) override;
+
+	/** See @ref widget::find. */
+	virtual const widget* find(const std::string_view id, const bool must_be_active) const override;
 
 private:
 	/* **** ***** ***** inherited ****** **** */

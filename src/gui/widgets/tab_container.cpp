@@ -13,6 +13,7 @@
 	See the COPYING file for more details.
 */
 
+#include <cassert>
 #define GETTEXT_DOMAIN "wesnoth-lib"
 
 #include "gui/widgets/tab_container.hpp"
@@ -38,9 +39,33 @@ namespace gui2
 
 REGISTER_WIDGET(tab_container)
 
+struct tab_container_implementation
+{
+	template<typename W>
+	static W* find(utils::const_clone_ref<tab_container, W> stack,
+			const std::string_view id,
+			const bool must_be_active)
+	{
+		// Use base method if find-in-all-layer isn't set.
+		// if(!stack.find_in_all_layers_) {
+		// 	return stack.container_base::find(id, must_be_active);
+		// }
+
+		for(unsigned i = 0; i < stack.get_tab_count(); ++i) {
+			if(W* res = stack.get_tab_grid(i)->find(id, must_be_active)) {
+				return res;
+			}
+		}
+
+		return stack.container_base::find(id, must_be_active);
+	}
+};
+
 tab_container::tab_container(const implementation::builder_tab_container& builder)
 	: container_base(builder, type())
 	, state_(ENABLED)
+	, generator_(nullptr)
+	, tab_count_(builder.builders.size())
 {
 	const auto conf = cast_config_to<tab_container_definition>();
 	assert(conf);
@@ -66,8 +91,6 @@ tab_container::tab_container(const implementation::builder_tab_container& builde
 		add_tab_entry(row);
 	}
 	get_internal_list().connect_signal<event::NOTIFY_MODIFIED>(std::bind(&tab_container::change_selection, this));
-
-	select_tab(0);
 }
 
 void tab_container::set_self_active(const bool active)
@@ -103,6 +126,7 @@ void tab_container::add_tab_entry(const widget_data& row)
 
 void tab_container::select_tab(unsigned index)
 {
+	assert(generator_);
 	if (index < get_tab_count()) {
 		get_internal_list().select_row(index);
 		generator_->select_item(index, true);
@@ -115,6 +139,18 @@ void tab_container::change_selection() {
 	queue_redraw();
 
 	fire(event::NOTIFY_MODIFIED, *this, nullptr);
+}
+
+widget* tab_container::find(const std::string_view id, const bool must_be_active)
+{
+	assert(generator_);
+	return tab_container_implementation::find<widget>(*this, id, must_be_active);
+}
+
+const widget* tab_container::find(const std::string_view id, const bool must_be_active) const
+{
+	assert(generator_);
+	return tab_container_implementation::find<const widget>(*this, id, must_be_active);
 }
 
 // }---------- DEFINITION ---------{
@@ -147,7 +183,8 @@ builder_tab_container::builder_tab_container(const config& cfg)
 	: implementation::builder_styled_widget(cfg)
 {
 	if(cfg.has_child("tab")) {
-		for(const config& tab : cfg.child_range("tab")) {
+		for(const config& tab : cfg.child_range("tab"))
+		{
 			list_items.emplace_back(widget_data{
 				{ "image", {{"label", tab["image"].str()}} },
 				{ "name", {{"label", tab["name"].t_str()}} }
